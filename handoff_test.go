@@ -165,3 +165,33 @@ func TestProcessPath(t *testing.T) {
 		t.Errorf("Expected empty result for non-existent path, but got %q", builder.String())
 	}
 }
+
+// TestIsBinaryFile tests the isBinaryFile function
+func TestIsBinaryFile(t *testing.T) {
+	// Test with text content
+	textContent := []byte("This is a text file with normal characters.")
+	if isBinaryFile(textContent) {
+		t.Errorf("Text content incorrectly identified as binary")
+	}
+
+	// Test with binary content (content with null bytes)
+	binaryContent := []byte{0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x00, 0x57, 0x6f, 0x72, 0x6c, 0x64}
+	if !isBinaryFile(binaryContent) {
+		t.Errorf("Binary content not identified as binary")
+	}
+
+	// Test with high percentage of non-printable characters
+	nonPrintableContent := make([]byte, 100)
+	for i := range nonPrintableContent {
+		nonPrintableContent[i] = byte(i % 32)
+	}
+	if !isBinaryFile(nonPrintableContent) {
+		t.Errorf("Content with high percentage of non-printable characters not identified as binary")
+	}
+
+	// Test with whitespace characters (they should be considered printable)
+	whitespaceContent := []byte("\n\r\t ")
+	if isBinaryFile(whitespaceContent) {
+		t.Errorf("Whitespace content incorrectly identified as binary")
+	}
+}

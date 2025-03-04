@@ -1,6 +1,7 @@
 package main
 
 import (
+    "bytes"
     "fmt"
     "os"
     "os/exec"
@@ -79,6 +80,40 @@ func getFilesFromDir(dir string) ([]string, error) {
     return files, err
 }
 
+// isBinaryFile checks if a file is likely to be binary based on its content.
+func isBinaryFile(content []byte) bool {
+    // Check for null bytes, which are common in binary files
+    if len(content) > 0 && bytes.IndexByte(content, 0) != -1 {
+        return true
+    }
+
+    // Check for a high percentage of non-printable, non-whitespace characters
+    // which suggest binary content
+    nonPrintable := 0
+    sampleSize := minInt(len(content), 512) // Sample the first 512 bytes
+    for i := 0; i < sampleSize; i++ {
+        if content[i] < 32 && !isWhitespace(content[i]) {
+            nonPrintable++
+        }
+    }
+
+    // If more than 30% of the sampled bytes are non-printable, consider it binary
+    return nonPrintable > sampleSize*3/10
+}
+
+// isWhitespace checks if a byte is a whitespace character
+func isWhitespace(b byte) bool {
+    return b == '\n' || b == '\r' || b == '\t' || b == ' '
+}
+
+// minInt returns the minimum of two integers
+func minInt(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
+}
+
 // processFile reads a file and formats its contents.
 func processFile(file string) string {
     content, err := os.ReadFile(file)
@@ -86,6 +121,13 @@ func processFile(file string) string {
         fmt.Fprintf(os.Stderr, "error reading file %s: %v\n", file, err)
         return ""
     }
+
+    // Skip binary files
+    if isBinaryFile(content) {
+        fmt.Fprintf(os.Stderr, "skipping binary file: %s\n", file)
+        return ""
+    }
+
     return fmt.Sprintf("%s\n```\n%s\n```\n\n", file, string(content))
 }
 
