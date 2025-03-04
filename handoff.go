@@ -181,7 +181,7 @@ func processPath(path string, builder *strings.Builder) {
             fmt.Fprintf(os.Stderr, "skipping binary file: %s\n", file)
             return ""
         }
-        return fmt.Sprintf("%s\n```\n%s\n```\n\n", file, string(content))
+        return fmt.Sprintf("<%s>\n```\n%s\n```\n</%s>\n\n", file, string(content), file)
     }
     processPathWithProcessor(path, builder, processor)
 }
@@ -222,7 +222,7 @@ func main() {
     flag.BoolVar(&config.DryRun, "dry-run", false, "Preview what would be copied without actually copying")
     flag.StringVar(&config.Include, "include", "", "Comma-separated list of file extensions to include (e.g., .txt,.go)")
     flag.StringVar(&config.Exclude, "exclude", "", "Comma-separated list of file extensions to exclude (e.g., .exe,.bin)")
-    flag.StringVar(&config.Format, "format", "{path}\n```\n{content}\n```\n\n", "Custom format for output. Use {path} and {content} as placeholders")
+    flag.StringVar(&config.Format, "format", "<{path}>\n```\n{content}\n```\n</{path}>\n\n", "Custom format for output. Use {path} and {content} as placeholders")
 
     // Parse command-line flags
     flag.Parse()
