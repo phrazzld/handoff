@@ -79,6 +79,7 @@ Handoff supports several command-line options for advanced usage:
 The copied content will be formatted as:
 
 ````
+<context>
 <path/to/file.txt>
 ```
 content of file.txt
@@ -90,6 +91,7 @@ content of file.txt
 content of file.go
 ```
 </path/to/another/file.go>
+</context>
 ````
 
 You can customize this format using the `--format` flag with `{path}` and `{content}` placeholders.

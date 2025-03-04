@@ -167,6 +167,9 @@ func TestProcessPath(t *testing.T) {
 	if builder.String() != "" {
 		t.Errorf("Expected empty result for non-existent path, but got %q", builder.String())
 	}
+	
+	// Note: The top-level context tags are added in main(), not in processPath()
+	// so we don't test for them here
 }
 
 // TestIsBinaryFile tests the isBinaryFile function

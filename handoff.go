@@ -49,7 +49,11 @@ func getFilesFromDir(dir string) ([]string, error) {
             var files []string
             for _, line := range lines {
                 if line != "" {
-                    files = append(files, filepath.Join(dir, line))
+                    filePath := filepath.Join(dir, line)
+                    // Check if file still exists before adding it
+                    if _, err := os.Stat(filePath); err == nil {
+                        files = append(files, filePath)
+                    }
                 }
             }
             return files, nil
@@ -117,9 +121,18 @@ func minInt(a, b int) int {
 
 // processFile reads a file and formats its contents.
 func processFile(file string) string {
+    // First check if file exists
+    if _, statErr := os.Stat(file); statErr != nil {
+        if os.IsNotExist(statErr) {
+            // Skip without warning if the file simply doesn't exist
+            return ""
+        }
+    }
+    
     content, err := os.ReadFile(file)
     if err != nil {
-        fmt.Fprintf(os.Stderr, "error reading file %s: %v\n", file, err)
+        // Log warning for other errors
+        fmt.Fprintf(os.Stderr, "warning: cannot read %s: %v\n", file, err)
         return ""
     }
 
@@ -139,7 +152,8 @@ type ProcessorFunc func(filePath string, content []byte) string
 func processPathWithProcessor(path string, builder *strings.Builder, processor ProcessorFunc) {
     info, err := os.Stat(path)
     if err != nil {
-        fmt.Fprintf(os.Stderr, "path not found: %s\n", path)
+        // Just log the error and continue with other paths
+        fmt.Fprintf(os.Stderr, "warning: %v\n", err)
         return
     }
 
@@ -150,9 +164,18 @@ func processPathWithProcessor(path string, builder *strings.Builder, processor P
             return
         }
         for _, file := range files {
+            // First check if file exists
+            if _, statErr := os.Stat(file); statErr != nil {
+                if os.IsNotExist(statErr) {
+                    // Skip without warning if the file simply doesn't exist
+                    continue
+                }
+            }
+            
             content, err := os.ReadFile(file)
             if err != nil {
-                fmt.Fprintf(os.Stderr, "error reading file %s: %v\n", file, err)
+                // Log warning for other errors
+                fmt.Fprintf(os.Stderr, "warning: cannot read %s: %v\n", file, err)
                 continue
             }
             if output := processor(file, content); output != "" {
@@ -160,9 +183,18 @@ func processPathWithProcessor(path string, builder *strings.Builder, processor P
             }
         }
     } else if !isGitIgnored(path) {
+        // First check if file exists
+        if _, statErr := os.Stat(path); statErr != nil {
+            if os.IsNotExist(statErr) {
+                // Skip without warning if the file simply doesn't exist
+                return
+            }
+        }
+        
         content, err := os.ReadFile(path)
         if err != nil {
-            fmt.Fprintf(os.Stderr, "error reading file %s: %v\n", path, err)
+            // Log warning for other errors
+            fmt.Fprintf(os.Stderr, "warning: cannot read %s: %v\n", path, err)
             return
         }
         if output := processor(path, content); output != "" {
@@ -327,7 +359,8 @@ func main() {
         processPathWithProcessor(path, &builder, pathProcessor)
     }
 
-    text := builder.String()
+    // Wrap everything in a top-level context tag
+    text := "<context>\n" + builder.String() + "</context>"
     
     // In dry-run mode, just print what would be copied
     if config.DryRun {
