@@ -95,7 +95,7 @@ func TestProcessorFunc(t *testing.T) {
 		if isBinaryFile(content) {
 			return ""
 		}
-		return fmt.Sprintf("%s\n```\n%s\n```\n\n", file, string(content))
+		return fmt.Sprintf("<%s>\n```\n%s\n```\n</%s>\n\n", file, string(content), file)
 	}
 
 	// Test with text content
@@ -105,8 +105,8 @@ func TestProcessorFunc(t *testing.T) {
 	result := processor(filePath, fileContent)
 
 	// Check the result
-	expectedPrefix := filePath + "\n```\n"
-	expectedSuffix := "\n```\n\n"
+	expectedPrefix := "<" + filePath + ">\n```\n"
+	expectedSuffix := "\n```\n</" + filePath + ">\n\n"
 	if !strings.HasPrefix(result, expectedPrefix) {
 		t.Errorf("Expected result to start with %q, but got %q", expectedPrefix, result)
 	}
@@ -149,8 +149,8 @@ func TestProcessPath(t *testing.T) {
 
 	// Check the result
 	result := builder.String()
-	expectedPrefix := tmpFile.Name() + "\n```\n"
-	expectedSuffix := "\n```\n\n"
+	expectedPrefix := "<" + tmpFile.Name() + ">\n```\n"
+	expectedSuffix := "\n```\n</" + tmpFile.Name() + ">\n\n"
 	if !strings.HasPrefix(result, expectedPrefix) {
 		t.Errorf("Expected result to start with %q, but got %q", expectedPrefix, result)
 	}
