@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -148,8 +149,44 @@ func minInt(a, b int) int {
 	return b
 }
 
-// processFile processes a single file with the given processor
-func processFile(filePath string, logger *Logger, processor ProcessorFunc) string {
+// shouldProcess decides if a file should be processed based on all filters
+func shouldProcess(file string, config Config) bool {
+	base := filepath.Base(file)
+	ext := strings.ToLower(filepath.Ext(file))
+	
+	// Check exclude names filter
+	if len(config.ExcludeNames) > 0 && slices.Contains(config.ExcludeNames, base) {
+		return false
+	}
+	
+	// Check include extensions filter
+	if len(config.IncludeExts) > 0 {
+		included := false
+		for _, includeExt := range config.IncludeExts {
+			if ext == includeExt {
+				included = true
+				break
+			}
+		}
+		if !included {
+			return false
+		}
+	}
+	
+	// Check exclude extensions filter
+	if len(config.ExcludeExts) > 0 {
+		for _, excludeExt := range config.ExcludeExts {
+			if ext == excludeExt {
+				return false
+			}
+		}
+	}
+	
+	return true
+}
+
+// processFile processes a single file with the given processor and config
+func processFile(filePath string, logger *Logger, config Config, processor ProcessorFunc) string {
 	// First check if file exists
 	if _, statErr := os.Stat(filePath); statErr != nil {
 		if os.IsNotExist(statErr) {
@@ -167,6 +204,14 @@ func processFile(filePath string, logger *Logger, processor ProcessorFunc) strin
 		return ""
 	}
 	
+	// Check if file should be processed based on filters
+	if !shouldProcess(filePath, config) {
+		if len(config.ExcludeNames) > 0 && slices.Contains(config.ExcludeNames, filepath.Base(filePath)) {
+			logger.Verbose("skipping file (in exclude-names list): %s", filePath)
+		}
+		return ""
+	}
+	
 	// Read file content
 	content, err := os.ReadFile(filePath)
 	if err != nil {
@@ -174,12 +219,18 @@ func processFile(filePath string, logger *Logger, processor ProcessorFunc) strin
 		return ""
 	}
 	
+	// Skip binary files
+	if isBinaryFile(content) {
+		logger.Verbose("skipping binary file: %s", filePath)
+		return ""
+	}
+	
 	// Process the content
 	return processor(filePath, content)
 }
 
-// processDirectory processes all files in a directory with the given processor
-func processDirectory(dirPath string, contentBuilder *strings.Builder, logger *Logger, processor ProcessorFunc) {
+// processDirectory processes all files in a directory with the given processor and config
+func processDirectory(dirPath string, contentBuilder *strings.Builder, config Config, logger *Logger, processor ProcessorFunc) {
 	files, err := getFilesFromDir(dirPath)
 	if err != nil {
 		logger.Error("processing directory %s: %v", dirPath, err)
@@ -187,15 +238,15 @@ func processDirectory(dirPath string, contentBuilder *strings.Builder, logger *L
 	}
 	
 	for _, file := range files {
-		output := processFile(file, logger, processor)
+		output := processFile(file, logger, config, processor)
 		if output != "" {
 			contentBuilder.WriteString(output)
 		}
 	}
 }
 
-// processPathWithProcessor processes a single path (file or directory) with a custom processor function
-func processPathWithProcessor(path string, contentBuilder *strings.Builder, logger *Logger, processor ProcessorFunc) {
+// processPathWithProcessor processes a single path (file or directory) with a custom processor function and config
+func processPathWithProcessor(path string, contentBuilder *strings.Builder, config Config, logger *Logger, processor ProcessorFunc) {
 	info, err := os.Stat(path)
 	if err != nil {
 		// Just log the error and continue with other paths
@@ -204,9 +255,9 @@ func processPathWithProcessor(path string, contentBuilder *strings.Builder, logg
 	}
 
 	if info.IsDir() {
-		processDirectory(path, contentBuilder, logger, processor)
+		processDirectory(path, contentBuilder, config, logger, processor)
 	} else {
-		output := processFile(path, logger, processor)
+		output := processFile(path, logger, config, processor)
 		if output != "" {
 			contentBuilder.WriteString(output)
 		}
@@ -215,15 +266,11 @@ func processPathWithProcessor(path string, contentBuilder *strings.Builder, logg
 
 // processPath processes a single path (file or directory) with the default processor.
 // This maintains backward compatibility with existing code.
-func processPath(path string, builder *strings.Builder, logger *Logger) {
+func processPath(path string, builder *strings.Builder, config Config, logger *Logger) {
 	processor := func(file string, content []byte) string {
-		if isBinaryFile(content) {
-			logger.Verbose("skipping binary file: %s", file)
-			return ""
-		}
 		return fmt.Sprintf("<%s>\n```\n%s\n```\n</%s>\n\n", file, string(content), file)
 	}
-	processPathWithProcessor(path, builder, logger, processor)
+	processPathWithProcessor(path, builder, config, logger, processor)
 }
 
 // processPaths processes multiple paths and returns the number of processed files and total files
@@ -242,36 +289,6 @@ func processPaths(paths []string, contentBuilder *strings.Builder, config Config
 
 		// Custom process function with config and progress tracking
 		pathProcessor := func(file string, fileContent []byte) string {
-			// Skip files based on extension filters
-			ext := strings.ToLower(filepath.Ext(file))
-			if len(config.IncludeExts) > 0 {
-				included := false
-				for _, includeExt := range config.IncludeExts {
-					if ext == includeExt {
-						included = true
-						break
-					}
-				}
-				if !included {
-					logger.Verbose("Skipping file (not in include list): %s", file)
-					return ""
-				}
-			}
-			if len(config.ExcludeExts) > 0 {
-				for _, excludeExt := range config.ExcludeExts {
-					if ext == excludeExt {
-						logger.Verbose("Skipping file (in exclude list): %s", file)
-						return ""
-					}
-				}
-			}
-
-			// Skip binary files
-			if isBinaryFile(fileContent) {
-				logger.Verbose("Skipping binary file: %s", file)
-				return ""
-			}
-
 			processedFiles++
 			logger.Verbose("Processing file (%d/%d): %s", processedFiles, totalFiles, file)
 
@@ -283,7 +300,7 @@ func processPaths(paths []string, contentBuilder *strings.Builder, config Config
 		}
 
 		// Process the path with our custom processor
-		processPathWithProcessor(path, contentBuilder, logger, pathProcessor)
+		processPathWithProcessor(path, contentBuilder, config, logger, pathProcessor)
 	}
 	
 	return processedFiles, totalFiles
