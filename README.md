@@ -61,6 +61,9 @@ Handoff supports several command-line options for advanced usage:
 # Exclude specific file extensions
 ./handoff --exclude=.exe,.bin,.o path/to/directory
 
+# Exclude specific files by name (regardless of directory)
+./handoff --exclude-names=package-lock.json,yarn.lock path/to/directory
+
 # Use a custom format for the output
 ./handoff --format="File: {path}\n{content}\n---\n" path/to/directory
 ```
@@ -73,6 +76,7 @@ Handoff supports several command-line options for advanced usage:
 | `--dry-run` | Preview what would be copied without actually copying to clipboard |
 | `--include=.ext1,.ext2` | Only include files with specified extensions |
 | `--exclude=.ext1,.ext2` | Exclude files with specified extensions |
+| `--exclude-names=file1,file2` | Exclude specific files by name (e.g., package-lock.json,yarn.lock) |
 | `--format="..."` | Customize the output format using {path} and {content} placeholders |
 
 ### Output Format

@@ -12,13 +12,15 @@ type ProcessorFunc func(filePath string, content []byte) string
 
 // Config holds application configuration settings
 type Config struct {
-	Verbose     bool
-	DryRun      bool
-	Include     string
-	Exclude     string
-	Format      string
-	IncludeExts []string
-	ExcludeExts []string
+	Verbose        bool
+	DryRun         bool
+	Include        string
+	Exclude        string
+	ExcludeNamesStr string
+	Format         string
+	IncludeExts    []string
+	ExcludeExts    []string
+	ExcludeNames   []string
 }
 
 // parseConfig defines and parses command-line flags, processes include/exclude extensions,
@@ -29,6 +31,7 @@ func parseConfig() Config {
 	flag.BoolVar(&config.DryRun, "dry-run", false, "Preview what would be copied without actually copying")
 	flag.StringVar(&config.Include, "include", "", "Comma-separated list of file extensions to include (e.g., .txt,.go)")
 	flag.StringVar(&config.Exclude, "exclude", "", "Comma-separated list of file extensions to exclude (e.g., .exe,.bin)")
+	flag.StringVar(&config.ExcludeNamesStr, "exclude-names", "", "Comma-separated list of file names to exclude (e.g., package-lock.json,yarn.lock)")
 	flag.StringVar(&config.Format, "format", "<{path}>\n```\n{content}\n```\n</{path}>\n\n", "Custom format for output. Use {path} and {content} as placeholders")
 
 	// Parse command-line flags
@@ -51,6 +54,13 @@ func parseConfig() Config {
 			if !strings.HasPrefix(config.ExcludeExts[i], ".") {
 				config.ExcludeExts[i] = "." + config.ExcludeExts[i]
 			}
+		}
+	}
+	// Process exclude names
+	if config.ExcludeNamesStr != "" {
+		config.ExcludeNames = strings.Split(config.ExcludeNamesStr, ",")
+		for i, name := range config.ExcludeNames {
+			config.ExcludeNames[i] = strings.TrimSpace(name)
 		}
 	}
 	
