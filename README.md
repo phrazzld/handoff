@@ -9,6 +9,7 @@ Handoff simplifies the process of sharing file contents by:
 - Formatting the content with filenames
 - Automatically copying everything to your clipboard
 - Respecting `.gitignore` rules when processing directories
+- Providing useful statistics about the copied content
 
 ## Installation
 
@@ -95,6 +96,23 @@ content of file.go
 ````
 
 You can customize this format using the `--format` flag with `{path}` and `{content}` placeholders.
+
+### Output Statistics
+
+After processing files, Handoff displays useful statistics about the copied content:
+
+```
+Handoff complete:
+- Files: 3
+- Lines: 45
+- Characters: 1024
+- Estimated tokens: 256
+```
+
+These statistics are particularly helpful for:
+- Understanding how much content you're sharing
+- Estimating LLM token usage when pasting into AI tools
+- Monitoring the size of your clipboard content
 
 ## Git Integration
 
