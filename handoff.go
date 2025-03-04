@@ -2,6 +2,7 @@ package main
 
 import (
     "bytes"
+    "flag"
     "fmt"
     "os"
     "os/exec"
@@ -131,8 +132,11 @@ func processFile(file string) string {
     return fmt.Sprintf("%s\n```\n%s\n```\n\n", file, string(content))
 }
 
-// processPath processes a single path (file or directory).
-func processPath(path string, builder *strings.Builder) {
+// ProcessorFunc is a function type that processes a file's content and returns formatted output
+type ProcessorFunc func(filePath string, content []byte) string
+
+// processPathWithProcessor processes a single path with a custom processor function
+func processPathWithProcessor(path string, builder *strings.Builder, processor ProcessorFunc) {
     info, err := os.Stat(path)
     if err != nil {
         fmt.Fprintf(os.Stderr, "path not found: %s\n", path)
@@ -146,13 +150,40 @@ func processPath(path string, builder *strings.Builder) {
             return
         }
         for _, file := range files {
-            builder.WriteString(processFile(file))
+            content, err := os.ReadFile(file)
+            if err != nil {
+                fmt.Fprintf(os.Stderr, "error reading file %s: %v\n", file, err)
+                continue
+            }
+            if output := processor(file, content); output != "" {
+                builder.WriteString(output)
+            }
         }
     } else if !isGitIgnored(path) {
-        builder.WriteString(processFile(path))
+        content, err := os.ReadFile(path)
+        if err != nil {
+            fmt.Fprintf(os.Stderr, "error reading file %s: %v\n", path, err)
+            return
+        }
+        if output := processor(path, content); output != "" {
+            builder.WriteString(output)
+        }
     } else {
         fmt.Fprintf(os.Stderr, "skipping gitignored file: %s\n", path)
     }
+}
+
+// processPath processes a single path (file or directory) with the default processor.
+// This maintains backward compatibility with existing code.
+func processPath(path string, builder *strings.Builder) {
+    processor := func(file string, content []byte) string {
+        if isBinaryFile(content) {
+            fmt.Fprintf(os.Stderr, "skipping binary file: %s\n", file)
+            return ""
+        }
+        return fmt.Sprintf("%s\n```\n%s\n```\n\n", file, string(content))
+    }
+    processPathWithProcessor(path, builder, processor)
 }
 
 // copyToClipboard copies text to the system clipboard.
@@ -173,20 +204,148 @@ func copyToClipboard(text string) error {
     return fmt.Errorf("no supported clipboard command found (pbcopy, xclip, wl-copy)")
 }
 
+// Config holds application configuration settings
+type Config struct {
+    Verbose     bool
+    DryRun      bool
+    Include     string
+    Exclude     string
+    Format      string
+    IncludeExts []string
+    ExcludeExts []string
+}
+
 func main() {
-    if len(os.Args) < 2 {
-        fmt.Fprintf(os.Stderr, "usage: %s path1 [path2 ...]\n", os.Args[0])
+    // Define command-line flags
+    var config Config
+    flag.BoolVar(&config.Verbose, "verbose", false, "Enable verbose output")
+    flag.BoolVar(&config.DryRun, "dry-run", false, "Preview what would be copied without actually copying")
+    flag.StringVar(&config.Include, "include", "", "Comma-separated list of file extensions to include (e.g., .txt,.go)")
+    flag.StringVar(&config.Exclude, "exclude", "", "Comma-separated list of file extensions to exclude (e.g., .exe,.bin)")
+    flag.StringVar(&config.Format, "format", "{path}\n```\n{content}\n```\n\n", "Custom format for output. Use {path} and {content} as placeholders")
+
+    // Parse command-line flags
+    flag.Parse()
+
+    // Process include/exclude extensions
+    if config.Include != "" {
+        config.IncludeExts = strings.Split(config.Include, ",")
+        for i, ext := range config.IncludeExts {
+            config.IncludeExts[i] = strings.TrimSpace(ext)
+            if !strings.HasPrefix(config.IncludeExts[i], ".") {
+                config.IncludeExts[i] = "." + config.IncludeExts[i]
+            }
+        }
+    }
+    if config.Exclude != "" {
+        config.ExcludeExts = strings.Split(config.Exclude, ",")
+        for i, ext := range config.ExcludeExts {
+            config.ExcludeExts[i] = strings.TrimSpace(ext)
+            if !strings.HasPrefix(config.ExcludeExts[i], ".") {
+                config.ExcludeExts[i] = "." + config.ExcludeExts[i]
+            }
+        }
+    }
+
+    // Check if we have any paths to process
+    if flag.NArg() < 1 {
+        fmt.Fprintf(os.Stderr, "usage: %s [options] path1 [path2 ...]\n", os.Args[0])
+        flag.PrintDefaults()
         os.Exit(1)
     }
 
+    // Process paths
     var builder strings.Builder
-    for _, path := range os.Args[1:] {
-        processPath(path, &builder)
+    totalFiles := 0
+    processedFiles := 0
+
+    for _, path := range flag.Args() {
+        if config.Verbose {
+            fmt.Fprintf(os.Stderr, "Processing path: %s\n", path)
+        }
+
+        // Count total files before processing
+        if info, err := os.Stat(path); err == nil && !info.IsDir() {
+            totalFiles++
+        } else if err == nil && info.IsDir() {
+            if files, err := getFilesFromDir(path); err == nil {
+                totalFiles += len(files)
+            }
+        }
+
+        // Custom process function with config and progress tracking
+        pathProcessor := func(file string, fileContent []byte) string {
+            // Skip files based on extension filters
+            ext := strings.ToLower(filepath.Ext(file))
+            if len(config.IncludeExts) > 0 {
+                included := false
+                for _, includeExt := range config.IncludeExts {
+                    if ext == includeExt {
+                        included = true
+                        break
+                    }
+                }
+                if !included {
+                    if config.Verbose {
+                        fmt.Fprintf(os.Stderr, "Skipping file (not in include list): %s\n", file)
+                    }
+                    return ""
+                }
+            }
+            if len(config.ExcludeExts) > 0 {
+                for _, excludeExt := range config.ExcludeExts {
+                    if ext == excludeExt {
+                        if config.Verbose {
+                            fmt.Fprintf(os.Stderr, "Skipping file (in exclude list): %s\n", file)
+                        }
+                        return ""
+                    }
+                }
+            }
+
+            // Skip binary files
+            if isBinaryFile(fileContent) {
+                if config.Verbose {
+                    fmt.Fprintf(os.Stderr, "Skipping binary file: %s\n", file)
+                }
+                return ""
+            }
+
+            processedFiles++
+            if config.Verbose {
+                fmt.Fprintf(os.Stderr, "Processing file (%d/%d): %s\n", processedFiles, totalFiles, file)
+            }
+
+            // Format the output using the custom format
+            output := config.Format
+            output = strings.ReplaceAll(output, "{path}", file)
+            output = strings.ReplaceAll(output, "{content}", string(fileContent))
+            return output
+        }
+
+        // Process the path with our custom processor
+        processPathWithProcessor(path, &builder, pathProcessor)
     }
 
     text := builder.String()
+    
+    // In dry-run mode, just print what would be copied
+    if config.DryRun {
+        fmt.Println("### DRY RUN: Content that would be copied to clipboard ###")
+        fmt.Println(text)
+        if config.Verbose {
+            fmt.Fprintf(os.Stderr, "Processed %d/%d files\n", processedFiles, totalFiles)
+        }
+        return
+    }
+
+    // Copy to clipboard
     if err := copyToClipboard(text); err != nil {
         fmt.Fprintln(os.Stderr, err)
         os.Exit(1)
+    }
+
+    if config.Verbose {
+        fmt.Fprintf(os.Stderr, "Successfully copied content of %d/%d files to clipboard\n", processedFiles, totalFiles)
     }
 }

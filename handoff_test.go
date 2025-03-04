@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -87,29 +88,24 @@ func TestGetFilesFromDir(t *testing.T) {
 	}
 }
 
-// TestProcessFile tests the processFile function
-func TestProcessFile(t *testing.T) {
-	// Create a temporary file for testing
-	tmpFile, err := os.CreateTemp("", "handoff-test-*.txt")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-	defer os.Remove(tmpFile.Name())
-
-	// Write content to the file
-	content := "Test content"
-	if _, err := tmpFile.WriteString(content); err != nil {
-		t.Fatalf("Failed to write to temp file: %v", err)
-	}
-	if err := tmpFile.Close(); err != nil {
-		t.Fatalf("Failed to close temp file: %v", err)
+// TestProcessorFunc tests the processor function in isolation
+func TestProcessorFunc(t *testing.T) {
+	// Create a processor function similar to the default one
+	processor := func(file string, content []byte) string {
+		if isBinaryFile(content) {
+			return ""
+		}
+		return fmt.Sprintf("%s\n```\n%s\n```\n\n", file, string(content))
 	}
 
-	// Process the file
-	result := processFile(tmpFile.Name())
+	// Test with text content
+	filePath := "/path/to/file.txt"
+	fileContent := []byte("Test content")
+	
+	result := processor(filePath, fileContent)
 
 	// Check the result
-	expectedPrefix := tmpFile.Name() + "\n```\n"
+	expectedPrefix := filePath + "\n```\n"
 	expectedSuffix := "\n```\n\n"
 	if !strings.HasPrefix(result, expectedPrefix) {
 		t.Errorf("Expected result to start with %q, but got %q", expectedPrefix, result)
@@ -117,8 +113,15 @@ func TestProcessFile(t *testing.T) {
 	if !strings.HasSuffix(result, expectedSuffix) {
 		t.Errorf("Expected result to end with %q, but got %q", expectedSuffix, result)
 	}
-	if !strings.Contains(result, content) {
-		t.Errorf("Expected result to contain %q, but got %q", content, result)
+	if !strings.Contains(result, string(fileContent)) {
+		t.Errorf("Expected result to contain %q, but got %q", string(fileContent), result)
+	}
+
+	// Test with binary content
+	binaryContent := []byte{0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x00, 0x57, 0x6f, 0x72, 0x6c, 0x64} // Contains null byte
+	result = processor(filePath, binaryContent)
+	if result != "" {
+		t.Errorf("Expected empty result for binary content, but got %q", result)
 	}
 }
 

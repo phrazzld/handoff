@@ -30,6 +30,8 @@ go install
 
 ## Usage
 
+### Basic Usage
+
 ```bash
 # Copy a single file to clipboard
 ./handoff path/to/file.txt
@@ -40,6 +42,37 @@ go install
 # Copy all files from a directory (respecting .gitignore)
 ./handoff path/to/directory
 ```
+
+### Advanced Options
+
+Handoff supports several command-line options for advanced usage:
+
+```bash
+# Show verbose output while processing files
+./handoff --verbose path/to/directory
+
+# Preview what would be copied without actually copying to clipboard
+./handoff --dry-run path/to/directory
+
+# Only include specific file extensions
+./handoff --include=.go,.md path/to/directory
+
+# Exclude specific file extensions
+./handoff --exclude=.exe,.bin,.o path/to/directory
+
+# Use a custom format for the output
+./handoff --format="File: {path}\n{content}\n---\n" path/to/directory
+```
+
+### Command-line Flags
+
+| Flag | Description |
+|------|-------------|
+| `--verbose` | Enable detailed output showing which files are processed |
+| `--dry-run` | Preview what would be copied without actually copying to clipboard |
+| `--include=.ext1,.ext2` | Only include files with specified extensions |
+| `--exclude=.ext1,.ext2` | Exclude files with specified extensions |
+| `--format="..."` | Customize the output format using {path} and {content} placeholders |
 
 ### Output Format
 
