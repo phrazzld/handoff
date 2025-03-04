@@ -1,12 +1,15 @@
 # Handoff Project Guidelines
 
 ## Build Commands
+- Create module: `go mod init github.com/phrazzld/handoff`
 - Build: `go build`
-- Run: `go run main.go [path1] [path2] ...`
-- Test: `go test ./...`
-- Test specific: `go test ./path/to/package -run TestName`
+- Run: `./handoff [options] [path1] [path2] ...`
+- Run single file: `./handoff path/to/file.go`
+- Test all: `go test ./...`
+- Test specific: `go test -run TestName`
+- Verbose tests: `go test -v ./...`
 - Format code: `gofmt -w .`
-- Lint: `golangci-lint run`
+- Lint: `golangci-lint run` (if installed)
 
 ## Code Style Guidelines
 - **Imports**: Standard library imports first, then third-party packages, separated by blank lines
