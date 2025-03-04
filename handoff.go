@@ -8,6 +8,7 @@ import (
     "os/exec"
     "path/filepath"
     "strings"
+    "unicode"
 )
 
 // gitAvailable indicates whether the git command is available on the system.
@@ -117,6 +118,26 @@ func minInt(a, b int) int {
         return a
     }
     return b
+}
+
+// estimateTokenCount counts tokens by tracking transitions between whitespace and non-whitespace characters
+func estimateTokenCount(text string) int {
+    count := 0
+    inToken := false
+    for _, r := range text {
+        if unicode.IsSpace(r) {
+            if inToken {
+                count++
+                inToken = false
+            }
+        } else {
+            inToken = true
+        }
+    }
+    if inToken {
+        count++ // Count the last token if text ends with non-whitespace
+    }
+    return count
 }
 
 // processFile reads a file and formats its contents.
@@ -366,19 +387,32 @@ func main() {
     if config.DryRun {
         fmt.Println("### DRY RUN: Content that would be copied to clipboard ###")
         fmt.Println(text)
-        if config.Verbose {
-            fmt.Fprintf(os.Stderr, "Processed %d/%d files\n", processedFiles, totalFiles)
+    } else {
+        // Copy to clipboard
+        if err := copyToClipboard(text); err != nil {
+            fmt.Fprintln(os.Stderr, err)
+            os.Exit(1)
         }
-        return
     }
-
-    // Copy to clipboard
-    if err := copyToClipboard(text); err != nil {
-        fmt.Fprintln(os.Stderr, err)
-        os.Exit(1)
-    }
-
+    
+    // Calculate statistics
+    fileCount := processedFiles
+    charCount := len(text)
+    lineCount := strings.Count(text, "\n") + 1
+    tokenCount := estimateTokenCount(text)
+    
+    // Log statistics
+    fmt.Fprintf(os.Stderr, "Handoff complete:\n")
+    fmt.Fprintf(os.Stderr, "- Files: %d\n", fileCount)
+    fmt.Fprintf(os.Stderr, "- Lines: %d\n", lineCount)
+    fmt.Fprintf(os.Stderr, "- Characters: %d\n", charCount)
+    fmt.Fprintf(os.Stderr, "- Estimated tokens: %d\n", tokenCount)
+    
     if config.Verbose {
-        fmt.Fprintf(os.Stderr, "Successfully copied content of %d/%d files to clipboard\n", processedFiles, totalFiles)
+        if config.DryRun {
+            fmt.Fprintf(os.Stderr, "Processed %d/%d files\n", processedFiles, totalFiles)
+        } else {
+            fmt.Fprintf(os.Stderr, "Successfully copied content of %d/%d files to clipboard\n", processedFiles, totalFiles)
+        }
     }
 }

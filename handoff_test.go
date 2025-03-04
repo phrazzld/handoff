@@ -201,3 +201,57 @@ func TestIsBinaryFile(t *testing.T) {
 		t.Errorf("Whitespace content incorrectly identified as binary")
 	}
 }
+
+// TestEstimateTokenCount tests the estimateTokenCount function
+func TestEstimateTokenCount(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected int
+	}{
+		{
+			name:     "Empty string",
+			input:    "",
+			expected: 0,
+		},
+		{
+			name:     "Single word",
+			input:    "hello",
+			expected: 1,
+		},
+		{
+			name:     "Multiple words with spaces",
+			input:    "hello world example",
+			expected: 3,
+		},
+		{
+			name:     "Words with mixed whitespace",
+			input:    "hello\nworld\texample  test",
+			expected: 4,
+		},
+		{
+			name:     "Leading and trailing whitespace",
+			input:    "  hello world  ",
+			expected: 2,
+		},
+		{
+			name:     "Symbols and punctuation",
+			input:    "hello, world! This is a test.",
+			expected: 6, // Punctuation attaches to words in our simple tokenizer
+		},
+		{
+			name:     "Code-like text",
+			input:    "func main() { fmt.Println(\"Hello\") }",
+			expected: 5, // Punctuation and symbols stay attached to words in our tokenizer
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := estimateTokenCount(tc.input)
+			if result != tc.expected {
+				t.Errorf("estimateTokenCount(%q) = %d, want %d", tc.input, result, tc.expected)
+			}
+		})
+	}
+}
