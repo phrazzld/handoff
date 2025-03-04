@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -145,7 +147,8 @@ func TestProcessPath(t *testing.T) {
 
 	// Process the path (file)
 	var builder strings.Builder
-	processPath(tmpFile.Name(), &builder)
+	logger := newLogger(false) // Non-verbose logger for testing
+	processPath(tmpFile.Name(), &builder, logger)
 
 	// Check the result
 	result := builder.String()
@@ -163,7 +166,7 @@ func TestProcessPath(t *testing.T) {
 
 	// Test with a non-existent path
 	builder.Reset()
-	processPath("non-existent-path", &builder)
+	processPath("non-existent-path", &builder, logger)
 	if builder.String() != "" {
 		t.Errorf("Expected empty result for non-existent path, but got %q", builder.String())
 	}
@@ -199,6 +202,137 @@ func TestIsBinaryFile(t *testing.T) {
 	whitespaceContent := []byte("\n\r\t ")
 	if isBinaryFile(whitespaceContent) {
 		t.Errorf("Whitespace content incorrectly identified as binary")
+	}
+}
+
+// TestLogger tests the Logger functionality
+func TestLogger(t *testing.T) {
+	// Create a temporary capture of stderr
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+	
+	// Create loggers
+	verboseLogger := newLogger(true)
+	quietLogger := newLogger(false)
+	
+	// Log some messages
+	verboseLogger.Info("Info message")
+	verboseLogger.Warn("Warning message")
+	verboseLogger.Error("Error message")
+	verboseLogger.Verbose("Verbose message")
+	
+	quietLogger.Info("Info message from quiet logger")
+	quietLogger.Warn("Warning message from quiet logger")
+	quietLogger.Error("Error message from quiet logger")
+	quietLogger.Verbose("This verbose message should not appear")
+	
+	// Close the writer and restore stderr
+	w.Close()
+	os.Stderr = oldStderr
+	
+	// Read the output
+	var buf bytes.Buffer
+	_, _ = io.Copy(&buf, r)
+	output := buf.String()
+	
+	// Check that messages were logged correctly
+	if !strings.Contains(output, "Info message") {
+		t.Error("Info message not found in logger output")
+	}
+	if !strings.Contains(output, "warning: Warning message") {
+		t.Error("Warning message not found in logger output")
+	}
+	if !strings.Contains(output, "error: Error message") {
+		t.Error("Error message not found in logger output")
+	}
+	if !strings.Contains(output, "Verbose message") {
+		t.Error("Verbose message not found in logger output")
+	}
+	
+	// Check that quiet logger suppresses verbose messages
+	if strings.Contains(output, "This verbose message should not appear") {
+		t.Error("Verbose message from quiet logger should not appear")
+	}
+}
+
+// TestWrapInContext tests the wrapInContext function
+func TestWrapInContext(t *testing.T) {
+	input := "test content"
+	expected := "<context>\ntest content</context>"
+	
+	result := wrapInContext(input)
+	if result != expected {
+		t.Errorf("wrapInContext(%q) = %q, want %q", input, result, expected)
+	}
+}
+
+// TestLogStatistics tests the logStatistics function
+func TestLogStatistics(t *testing.T) {
+	// Create a temporary capture of stderr
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+	
+	// Create a logger
+	logger := newLogger(true)
+	
+	// Mock content and config
+	content := "Line 1\nLine 2\nLine 3\nThis is a test of the statistics function.\n"
+	config := Config{
+		Verbose: true,
+		DryRun:  false,
+	}
+	
+	// Call logStatistics
+	logStatistics(content, 3, 5, config, logger)
+	
+	// Close the writer and restore stderr
+	w.Close()
+	os.Stderr = oldStderr
+	
+	// Read the output
+	var buf bytes.Buffer
+	_, _ = io.Copy(&buf, r)
+	output := buf.String()
+	
+	// Check that statistics were logged correctly
+	statsToCheck := []string{
+		"Handoff complete:",
+		"Files: 3",
+		"Lines: 5", // 4 newlines + 1 = 5 lines
+		"Characters: " + fmt.Sprintf("%d", len(content)),
+		"Estimated tokens: " + fmt.Sprintf("%d", estimateTokenCount(content)),
+		"Successfully copied content of 3/5 files",
+	}
+	
+	for _, stat := range statsToCheck {
+		if !strings.Contains(output, stat) {
+			t.Errorf("Expected output to contain %q, but got %q", stat, output)
+		}
+	}
+	
+	// Test with dry-run config
+	oldStderr = os.Stderr
+	r, w, _ = os.Pipe()
+	os.Stderr = w
+	
+	dryRunConfig := Config{
+		Verbose: true,
+		DryRun:  true,
+	}
+	
+	logStatistics(content, 3, 5, dryRunConfig, logger)
+	
+	w.Close()
+	os.Stderr = oldStderr
+	
+	buf.Reset()
+	_, _ = io.Copy(&buf, r)
+	dryRunOutput := buf.String()
+	
+	if !strings.Contains(dryRunOutput, "Processed 3/5 files") {
+		t.Errorf("Expected dry-run output to mention processed files, but got %q", dryRunOutput)
 	}
 }
 
