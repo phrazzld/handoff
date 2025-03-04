@@ -40,33 +40,37 @@ func isGitIgnored(file string) bool {
     return strings.HasPrefix(filename, ".")
 }
 
-// getFilesFromDir retrieves all files to process from a directory.
-func getFilesFromDir(dir string) ([]string, error) {
-    if gitAvailable {
-        cmd := exec.Command("git", "-C", dir, "ls-files", "--cached", "--others", "--exclude-standard")
-        output, err := cmd.Output()
-        if err == nil {
-            lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-            var files []string
-            for _, line := range lines {
-                if line != "" {
-                    filePath := filepath.Join(dir, line)
-                    // Check if file still exists before adding it
-                    if _, err := os.Stat(filePath); err == nil {
-                        files = append(files, filePath)
-                    }
-                }
-            }
-            return files, nil
-        }
+// getGitFiles retrieves files from a directory using Git's ls-files command
+func getGitFiles(dir string) ([]string, error) {
+    if !gitAvailable {
+        return nil, fmt.Errorf("git not available")
+    }
+    
+    cmd := exec.Command("git", "-C", dir, "ls-files", "--cached", "--others", "--exclude-standard")
+    output, err := cmd.Output()
+    if err != nil {
         if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 128 {
-            // Not a git repo, fall back to filepath.Walk
-        } else if err != nil {
-            return nil, fmt.Errorf("error running git ls-files: %v", err)
+            return nil, fmt.Errorf("not a git repository")
+        }
+        return nil, fmt.Errorf("error running git ls-files: %v", err)
+    }
+    
+    lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+    var files []string
+    for _, line := range lines {
+        if line != "" {
+            filePath := filepath.Join(dir, line)
+            // Check if file still exists before adding it
+            if _, err := os.Stat(filePath); err == nil {
+                files = append(files, filePath)
+            }
         }
     }
+    return files, nil
+}
 
-    // Fallback to walking the directory, excluding hidden files and dirs
+// getFilesWithFilepathWalk retrieves files from a directory by walking the filesystem
+func getFilesWithFilepathWalk(dir string) ([]string, error) {
     var files []string
     err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
         if err != nil {
@@ -86,6 +90,32 @@ func getFilesFromDir(dir string) ([]string, error) {
     return files, err
 }
 
+// getFilesFromDir retrieves all files to process from a directory.
+// It tries to use Git first and falls back to filepath.Walk if Git is not available
+// or the directory is not a Git repository.
+func getFilesFromDir(dir string) ([]string, error) {
+    if gitAvailable {
+        files, err := getGitFiles(dir)
+        if err == nil {
+            return files, nil
+        }
+        // If there's an error running git ls-files and it's not "not a git repository", return the error
+        if !strings.Contains(err.Error(), "not a git repository") {
+            return nil, err
+        }
+        // Otherwise fall back to filepath.Walk
+    }
+
+    // Fallback to walking the directory, excluding hidden files and dirs
+    return getFilesWithFilepathWalk(dir)
+}
+
+// Constants for binary file detection
+const (
+    binarySampleSize           = 512  // Number of bytes to sample for binary detection
+    binaryNonPrintableThreshold = 0.3 // Threshold ratio of non-printable chars to consider a file binary
+)
+
 // isBinaryFile checks if a file is likely to be binary based on its content.
 func isBinaryFile(content []byte) bool {
     // Check for null bytes, which are common in binary files
@@ -96,15 +126,15 @@ func isBinaryFile(content []byte) bool {
     // Check for a high percentage of non-printable, non-whitespace characters
     // which suggest binary content
     nonPrintable := 0
-    sampleSize := minInt(len(content), 512) // Sample the first 512 bytes
+    sampleSize := minInt(len(content), binarySampleSize) // Sample the first bytes
     for i := 0; i < sampleSize; i++ {
         if content[i] < 32 && !isWhitespace(content[i]) {
             nonPrintable++
         }
     }
 
-    // If more than 30% of the sampled bytes are non-printable, consider it binary
-    return nonPrintable > sampleSize*3/10
+    // If more than the threshold percentage of sampled bytes are non-printable, consider it binary
+    return float64(nonPrintable) > float64(sampleSize)*binaryNonPrintableThreshold
 }
 
 // isWhitespace checks if a byte is a whitespace character
@@ -140,121 +170,133 @@ func estimateTokenCount(text string) int {
     return count
 }
 
-// processFile reads a file and formats its contents.
-func processFile(file string) string {
-    // First check if file exists
-    if _, statErr := os.Stat(file); statErr != nil {
-        if os.IsNotExist(statErr) {
-            // Skip without warning if the file simply doesn't exist
-            return ""
-        }
-    }
-    
-    content, err := os.ReadFile(file)
-    if err != nil {
-        // Log warning for other errors
-        fmt.Fprintf(os.Stderr, "warning: cannot read %s: %v\n", file, err)
-        return ""
-    }
-
-    // Skip binary files
-    if isBinaryFile(content) {
-        fmt.Fprintf(os.Stderr, "skipping binary file: %s\n", file)
-        return ""
-    }
-
-    return fmt.Sprintf("%s\n```\n%s\n```\n\n", file, string(content))
-}
 
 // ProcessorFunc is a function type that processes a file's content and returns formatted output
 type ProcessorFunc func(filePath string, content []byte) string
 
-// processPathWithProcessor processes a single path with a custom processor function
-func processPathWithProcessor(path string, builder *strings.Builder, processor ProcessorFunc) {
+// processFile processes a single file with the given processor
+func processFile(filePath string, logger *Logger, processor ProcessorFunc) string {
+    // First check if file exists
+    if _, statErr := os.Stat(filePath); statErr != nil {
+        if os.IsNotExist(statErr) {
+            // Skip without warning if the file simply doesn't exist
+            return ""
+        }
+        // Log warning for other errors
+        logger.Warn("stat %s: %v", filePath, statErr)
+        return ""
+    }
+    
+    // Check if file is gitignored
+    if isGitIgnored(filePath) {
+        logger.Verbose("skipping gitignored file: %s", filePath)
+        return ""
+    }
+    
+    // Read file content
+    content, err := os.ReadFile(filePath)
+    if err != nil {
+        logger.Warn("cannot read %s: %v", filePath, err)
+        return ""
+    }
+    
+    // Process the content
+    return processor(filePath, content)
+}
+
+// processDirectory processes all files in a directory with the given processor
+func processDirectory(dirPath string, contentBuilder *strings.Builder, logger *Logger, processor ProcessorFunc) {
+    files, err := getFilesFromDir(dirPath)
+    if err != nil {
+        logger.Error("processing directory %s: %v", dirPath, err)
+        return
+    }
+    
+    for _, file := range files {
+        output := processFile(file, logger, processor)
+        if output != "" {
+            contentBuilder.WriteString(output)
+        }
+    }
+}
+
+// processPathWithProcessor processes a single path (file or directory) with a custom processor function
+func processPathWithProcessor(path string, contentBuilder *strings.Builder, logger *Logger, processor ProcessorFunc) {
     info, err := os.Stat(path)
     if err != nil {
         // Just log the error and continue with other paths
-        fmt.Fprintf(os.Stderr, "warning: %v\n", err)
+        logger.Warn("%v", err)
         return
     }
 
     if info.IsDir() {
-        files, err := getFilesFromDir(path)
-        if err != nil {
-            fmt.Fprintf(os.Stderr, "error processing directory %s: %v\n", path, err)
-            return
-        }
-        for _, file := range files {
-            // First check if file exists
-            if _, statErr := os.Stat(file); statErr != nil {
-                if os.IsNotExist(statErr) {
-                    // Skip without warning if the file simply doesn't exist
-                    continue
-                }
-            }
-            
-            content, err := os.ReadFile(file)
-            if err != nil {
-                // Log warning for other errors
-                fmt.Fprintf(os.Stderr, "warning: cannot read %s: %v\n", file, err)
-                continue
-            }
-            if output := processor(file, content); output != "" {
-                builder.WriteString(output)
-            }
-        }
-    } else if !isGitIgnored(path) {
-        // First check if file exists
-        if _, statErr := os.Stat(path); statErr != nil {
-            if os.IsNotExist(statErr) {
-                // Skip without warning if the file simply doesn't exist
-                return
-            }
-        }
-        
-        content, err := os.ReadFile(path)
-        if err != nil {
-            // Log warning for other errors
-            fmt.Fprintf(os.Stderr, "warning: cannot read %s: %v\n", path, err)
-            return
-        }
-        if output := processor(path, content); output != "" {
-            builder.WriteString(output)
-        }
+        processDirectory(path, contentBuilder, logger, processor)
     } else {
-        fmt.Fprintf(os.Stderr, "skipping gitignored file: %s\n", path)
+        output := processFile(path, logger, processor)
+        if output != "" {
+            contentBuilder.WriteString(output)
+        }
     }
 }
 
 // processPath processes a single path (file or directory) with the default processor.
 // This maintains backward compatibility with existing code.
-func processPath(path string, builder *strings.Builder) {
+func processPath(path string, builder *strings.Builder, logger *Logger) {
     processor := func(file string, content []byte) string {
         if isBinaryFile(content) {
-            fmt.Fprintf(os.Stderr, "skipping binary file: %s\n", file)
+            logger.Verbose("skipping binary file: %s", file)
             return ""
         }
         return fmt.Sprintf("<%s>\n```\n%s\n```\n</%s>\n\n", file, string(content), file)
     }
-    processPathWithProcessor(path, builder, processor)
+    processPathWithProcessor(path, builder, logger, processor)
 }
 
-// copyToClipboard copies text to the system clipboard.
+// copyToClipboard copies text to the system clipboard with enhanced error reporting.
 func copyToClipboard(text string) error {
+    var errors []string
+    
+    // Try pbcopy (macOS)
     if _, err := exec.LookPath("pbcopy"); err == nil {
         cmd := exec.Command("pbcopy")
         cmd.Stdin = strings.NewReader(text)
-        return cmd.Run()
-    } else if _, err := exec.LookPath("xclip"); err == nil {
+        if err := cmd.Run(); err == nil {
+            return nil // Success
+        } else {
+            errors = append(errors, fmt.Sprintf("pbcopy failed: %v", err))
+        }
+    } else {
+        errors = append(errors, "pbcopy not found")
+    }
+    
+    // Try xclip (X11/Linux)
+    if _, err := exec.LookPath("xclip"); err == nil {
         cmd := exec.Command("xclip", "-selection", "clipboard")
         cmd.Stdin = strings.NewReader(text)
-        return cmd.Run()
-    } else if _, err := exec.LookPath("wl-copy"); err == nil {
+        if err := cmd.Run(); err == nil {
+            return nil // Success
+        } else {
+            errors = append(errors, fmt.Sprintf("xclip failed: %v", err))
+        }
+    } else {
+        errors = append(errors, "xclip not found")
+    }
+    
+    // Try wl-copy (Wayland/Linux)
+    if _, err := exec.LookPath("wl-copy"); err == nil {
         cmd := exec.Command("wl-copy")
         cmd.Stdin = strings.NewReader(text)
-        return cmd.Run()
+        if err := cmd.Run(); err == nil {
+            return nil // Success
+        } else {
+            errors = append(errors, fmt.Sprintf("wl-copy failed: %v", err))
+        }
+    } else {
+        errors = append(errors, "wl-copy not found")
     }
-    return fmt.Errorf("no supported clipboard command found (pbcopy, xclip, wl-copy)")
+    
+    // If we get here, all clipboard commands failed
+    return fmt.Errorf("clipboard commands failed: %s", strings.Join(errors, "; "))
 }
 
 // Config holds application configuration settings
@@ -268,8 +310,133 @@ type Config struct {
     ExcludeExts []string
 }
 
-func main() {
-    // Define command-line flags
+// Logger provides a simple logging interface with different log levels
+type Logger struct {
+    verbose bool
+}
+
+// newLogger creates a new Logger instance
+func newLogger(verbose bool) *Logger {
+    return &Logger{
+        verbose: verbose,
+    }
+}
+
+// Info logs an informational message to stderr
+func (l *Logger) Info(format string, args ...interface{}) {
+    fmt.Fprintf(os.Stderr, format+"\n", args...)
+}
+
+// Warn logs a warning message to stderr
+func (l *Logger) Warn(format string, args ...interface{}) {
+    fmt.Fprintf(os.Stderr, "warning: "+format+"\n", args...)
+}
+
+// Error logs an error message to stderr
+func (l *Logger) Error(format string, args ...interface{}) {
+    fmt.Fprintf(os.Stderr, "error: "+format+"\n", args...)
+}
+
+// Verbose logs a message to stderr only if verbose mode is enabled
+func (l *Logger) Verbose(format string, args ...interface{}) {
+    if l.verbose {
+        fmt.Fprintf(os.Stderr, format+"\n", args...)
+    }
+}
+
+// wrapInContext wraps the content in a top-level context tag
+func wrapInContext(content string) string {
+    return "<context>\n" + content + "</context>"
+}
+
+// processPaths processes multiple paths and returns the number of processed files and total files
+func processPaths(paths []string, contentBuilder *strings.Builder, config Config, logger *Logger) (processedFiles int, totalFiles int) {
+    for _, path := range paths {
+        logger.Verbose("Processing path: %s", path)
+
+        // Count total files before processing
+        if info, err := os.Stat(path); err == nil && !info.IsDir() {
+            totalFiles++
+        } else if err == nil && info.IsDir() {
+            if files, err := getFilesFromDir(path); err == nil {
+                totalFiles += len(files)
+            }
+        }
+
+        // Custom process function with config and progress tracking
+        pathProcessor := func(file string, fileContent []byte) string {
+            // Skip files based on extension filters
+            ext := strings.ToLower(filepath.Ext(file))
+            if len(config.IncludeExts) > 0 {
+                included := false
+                for _, includeExt := range config.IncludeExts {
+                    if ext == includeExt {
+                        included = true
+                        break
+                    }
+                }
+                if !included {
+                    logger.Verbose("Skipping file (not in include list): %s", file)
+                    return ""
+                }
+            }
+            if len(config.ExcludeExts) > 0 {
+                for _, excludeExt := range config.ExcludeExts {
+                    if ext == excludeExt {
+                        logger.Verbose("Skipping file (in exclude list): %s", file)
+                        return ""
+                    }
+                }
+            }
+
+            // Skip binary files
+            if isBinaryFile(fileContent) {
+                logger.Verbose("Skipping binary file: %s", file)
+                return ""
+            }
+
+            processedFiles++
+            logger.Verbose("Processing file (%d/%d): %s", processedFiles, totalFiles, file)
+
+            // Format the output using the custom format
+            output := config.Format
+            output = strings.ReplaceAll(output, "{path}", file)
+            output = strings.ReplaceAll(output, "{content}", string(fileContent))
+            return output
+        }
+
+        // Process the path with our custom processor
+        processPathWithProcessor(path, contentBuilder, logger, pathProcessor)
+    }
+    
+    return processedFiles, totalFiles
+}
+
+// logStatistics calculates and logs statistics about the copied content
+func logStatistics(content string, fileCount int, totalFiles int, config Config, logger *Logger) {
+    charCount := len(content)
+    lineCount := strings.Count(content, "\n") + 1
+    tokenCount := estimateTokenCount(content)
+    
+    // Log statistics
+    logger.Info("Handoff complete:")
+    logger.Info("- Files: %d", fileCount)
+    logger.Info("- Lines: %d", lineCount)
+    logger.Info("- Characters: %d", charCount)
+    logger.Info("- Estimated tokens: %d", tokenCount)
+    
+    if config.Verbose {
+        if config.DryRun {
+            logger.Verbose("Processed %d/%d files", fileCount, totalFiles)
+        } else {
+            logger.Verbose("Successfully copied content of %d/%d files to clipboard", fileCount, totalFiles)
+        }
+    }
+}
+
+// parseConfig defines and parses command-line flags, processes include/exclude extensions,
+// and returns a populated Config struct.
+func parseConfig() Config {
     var config Config
     flag.BoolVar(&config.Verbose, "verbose", false, "Enable verbose output")
     flag.BoolVar(&config.DryRun, "dry-run", false, "Preview what would be copied without actually copying")
@@ -299,120 +466,41 @@ func main() {
             }
         }
     }
+    
+    return config
+}
+
+func main() {
+    // Parse command-line flags and get configuration
+    config := parseConfig()
+    logger := newLogger(config.Verbose)
 
     // Check if we have any paths to process
     if flag.NArg() < 1 {
-        fmt.Fprintf(os.Stderr, "usage: %s [options] path1 [path2 ...]\n", os.Args[0])
+        logger.Error("usage: %s [options] path1 [path2 ...]", os.Args[0])
         flag.PrintDefaults()
         os.Exit(1)
     }
 
     // Process paths
-    var builder strings.Builder
-    totalFiles := 0
-    processedFiles := 0
-
-    for _, path := range flag.Args() {
-        if config.Verbose {
-            fmt.Fprintf(os.Stderr, "Processing path: %s\n", path)
-        }
-
-        // Count total files before processing
-        if info, err := os.Stat(path); err == nil && !info.IsDir() {
-            totalFiles++
-        } else if err == nil && info.IsDir() {
-            if files, err := getFilesFromDir(path); err == nil {
-                totalFiles += len(files)
-            }
-        }
-
-        // Custom process function with config and progress tracking
-        pathProcessor := func(file string, fileContent []byte) string {
-            // Skip files based on extension filters
-            ext := strings.ToLower(filepath.Ext(file))
-            if len(config.IncludeExts) > 0 {
-                included := false
-                for _, includeExt := range config.IncludeExts {
-                    if ext == includeExt {
-                        included = true
-                        break
-                    }
-                }
-                if !included {
-                    if config.Verbose {
-                        fmt.Fprintf(os.Stderr, "Skipping file (not in include list): %s\n", file)
-                    }
-                    return ""
-                }
-            }
-            if len(config.ExcludeExts) > 0 {
-                for _, excludeExt := range config.ExcludeExts {
-                    if ext == excludeExt {
-                        if config.Verbose {
-                            fmt.Fprintf(os.Stderr, "Skipping file (in exclude list): %s\n", file)
-                        }
-                        return ""
-                    }
-                }
-            }
-
-            // Skip binary files
-            if isBinaryFile(fileContent) {
-                if config.Verbose {
-                    fmt.Fprintf(os.Stderr, "Skipping binary file: %s\n", file)
-                }
-                return ""
-            }
-
-            processedFiles++
-            if config.Verbose {
-                fmt.Fprintf(os.Stderr, "Processing file (%d/%d): %s\n", processedFiles, totalFiles, file)
-            }
-
-            // Format the output using the custom format
-            output := config.Format
-            output = strings.ReplaceAll(output, "{path}", file)
-            output = strings.ReplaceAll(output, "{content}", string(fileContent))
-            return output
-        }
-
-        // Process the path with our custom processor
-        processPathWithProcessor(path, &builder, pathProcessor)
-    }
-
-    // Wrap everything in a top-level context tag
-    text := "<context>\n" + builder.String() + "</context>"
+    contentBuilder := &strings.Builder{}
+    processedFiles, totalFiles := processPaths(flag.Args(), contentBuilder, config, logger)
     
-    // In dry-run mode, just print what would be copied
+    // Wrap content in context tag
+    formattedContent := wrapInContext(contentBuilder.String())
+    
+    // Handle dry-run or copy to clipboard
     if config.DryRun {
         fmt.Println("### DRY RUN: Content that would be copied to clipboard ###")
-        fmt.Println(text)
+        fmt.Println(formattedContent)
     } else {
         // Copy to clipboard
-        if err := copyToClipboard(text); err != nil {
-            fmt.Fprintln(os.Stderr, err)
+        if err := copyToClipboard(formattedContent); err != nil {
+            logger.Error("Failed to copy to clipboard: %v", err)
             os.Exit(1)
         }
     }
     
-    // Calculate statistics
-    fileCount := processedFiles
-    charCount := len(text)
-    lineCount := strings.Count(text, "\n") + 1
-    tokenCount := estimateTokenCount(text)
-    
     // Log statistics
-    fmt.Fprintf(os.Stderr, "Handoff complete:\n")
-    fmt.Fprintf(os.Stderr, "- Files: %d\n", fileCount)
-    fmt.Fprintf(os.Stderr, "- Lines: %d\n", lineCount)
-    fmt.Fprintf(os.Stderr, "- Characters: %d\n", charCount)
-    fmt.Fprintf(os.Stderr, "- Estimated tokens: %d\n", tokenCount)
-    
-    if config.Verbose {
-        if config.DryRun {
-            fmt.Fprintf(os.Stderr, "Processed %d/%d files\n", processedFiles, totalFiles)
-        } else {
-            fmt.Fprintf(os.Stderr, "Successfully copied content of %d/%d files to clipboard\n", processedFiles, totalFiles)
-        }
-    }
+    logStatistics(formattedContent, processedFiles, totalFiles, config, logger)
 }
