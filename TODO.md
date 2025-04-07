@@ -77,7 +77,7 @@
   - **Depends On:** "Implement error handling for file operations"
   - **AC Ref:** Task 7 "Add/Update Tests", Testing Strategy "Integration/CLI Tests"
 
-- [ ] **Add test for flag interaction between -output, -force, and -dry-run**
+- [x] **Add test for flag interaction between -output, -force, and -dry-run**
   - **Action:** Add test to verify correct precedence when various combinations of -output, -force, and -dry-run flags are used together.
   - **Depends On:** "Implement output precedence logic"
   - **AC Ref:** Task 7 "Add/Update Tests", Testing Strategy "Integration/CLI Tests"
