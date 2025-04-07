@@ -52,7 +52,7 @@
   - **Depends On:** "Update logging for file output operations"
   - **AC Ref:** Task 8 "Final Logging Adjustment", Consideration "Statistics Logging"
 
-- [ ] **Update README.md with new -output and -force flag documentation**
+- [x] **Update README.md with new -output and -force flag documentation**
   - **Action:** Add documentation in README.md for the new -output and -force flags, including descriptions, usage examples, and behavior with other flags. Include clear explanation of file overwrite protection.
   - **Depends On:** "Implement output precedence logic"
   - **AC Ref:** Task 6 "Update Documentation"
