@@ -15,7 +15,7 @@ import (
 // and returns a populated Config struct, output file path, force flag, and dry run flag.
 func parseConfig() (*handoff.Config, string, bool, bool) {
 	config := handoff.NewConfig()
-	
+
 	// Define flags
 	var dryRun bool
 	var outputFile string
@@ -34,14 +34,14 @@ func parseConfig() (*handoff.Config, string, bool, bool) {
 
 	// Process config (converts include/exclude strings to slices)
 	config.ProcessConfig()
-	
+
 	return config, outputFile, force, dryRun
 }
 
 // copyToClipboard copies text to the system clipboard with enhanced error reporting.
 func copyToClipboard(text string) error {
 	var errors []string
-	
+
 	// Try pbcopy (macOS)
 	if _, err := exec.LookPath("pbcopy"); err == nil {
 		cmd := exec.Command("pbcopy")
@@ -54,7 +54,7 @@ func copyToClipboard(text string) error {
 	} else {
 		errors = append(errors, "pbcopy not found")
 	}
-	
+
 	// Try xclip (X11/Linux)
 	if _, err := exec.LookPath("xclip"); err == nil {
 		cmd := exec.Command("xclip", "-selection", "clipboard")
@@ -67,7 +67,7 @@ func copyToClipboard(text string) error {
 	} else {
 		errors = append(errors, "xclip not found")
 	}
-	
+
 	// Try wl-copy (Wayland/Linux)
 	if _, err := exec.LookPath("wl-copy"); err == nil {
 		cmd := exec.Command("wl-copy")
@@ -80,7 +80,7 @@ func copyToClipboard(text string) error {
 	} else {
 		errors = append(errors, "wl-copy not found")
 	}
-	
+
 	// If we get here, all clipboard commands failed
 	return fmt.Errorf("clipboard commands failed: %s", strings.Join(errors, "; "))
 }
@@ -91,12 +91,12 @@ func resolveOutputPath(path string) (string, error) {
 	if path == "" {
 		return "", fmt.Errorf("output path is empty")
 	}
-	
+
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return "", fmt.Errorf("failed to determine absolute path: %w", err)
 	}
-	
+
 	return absPath, nil
 }
 
@@ -121,7 +121,7 @@ func main() {
 	// Parse command-line flags and get configuration
 	config, outputFile, force, dryRun := parseConfig()
 	logger := handoff.NewLogger(config.Verbose)
-	
+
 	// Resolve output path if specified
 	var absOutputPath string
 	if outputFile != "" {
@@ -132,14 +132,14 @@ func main() {
 			os.Exit(1)
 		}
 		logger.Verbose("Output will be written to: %s", absOutputPath)
-		
+
 		// Check if the file exists and handle according to force flag
 		exists, err := checkFileExists(absOutputPath)
 		if err != nil {
 			logger.Error("Error checking output file: %v", err)
 			os.Exit(1)
 		}
-		
+
 		if exists && !force {
 			logger.Error("Output file %s already exists. Use -force flag to overwrite.", absOutputPath)
 			os.Exit(1)
@@ -161,7 +161,7 @@ func main() {
 		logger.Error("Failed to process project: %v", err)
 		os.Exit(1)
 	}
-	
+
 	// Handle output based on precedence: dry-run > output file > clipboard
 	if dryRun {
 		// Highest precedence: dry-run mode
@@ -184,12 +184,12 @@ func main() {
 		}
 		logger.Info("Content successfully copied to clipboard.")
 	}
-	
+
 	// Calculate and log statistics
 	charCount, lineCount, tokenCount := handoff.CalculateStatistics(formattedContent)
 	// Count processed files from the content
 	processedFiles := strings.Count(formattedContent, "</")
-	
+
 	logger.Info("Handoff complete:")
 	logger.Info("- Files: %d", processedFiles)
 	logger.Info("- Lines: %d", lineCount)
