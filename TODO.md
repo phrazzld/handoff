@@ -72,7 +72,7 @@
   - **Depends On:** "Add integration test for file creation"
   - **AC Ref:** Task 7 "Add/Update Tests", Testing Strategy "Integration/CLI Tests", Updated requirement for file overwrite protection
 
-- [ ] **Add test for error handling on invalid paths**
+- [x] **Add test for error handling on invalid paths**
   - **Action:** Create test to verify proper error handling when -output points to an invalid or inaccessible path.
   - **Depends On:** "Implement error handling for file operations"
   - **AC Ref:** Task 7 "Add/Update Tests", Testing Strategy "Integration/CLI Tests"

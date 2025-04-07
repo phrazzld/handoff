@@ -716,3 +716,116 @@ func TestFileOverwriteProtection(t *testing.T) {
 		t.Errorf("New content isn't properly formatted with context tags")
 	}
 }
+
+// TestInvalidPathErrorHandling tests error handling for invalid output paths
+func TestInvalidPathErrorHandling(t *testing.T) {
+	// Create temporary test directory
+	tempDir, err := os.MkdirTemp("", "handoff-test-")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir) // Clean up after test
+
+	// Create test files within the temp directory
+	testFilePath := filepath.Join(tempDir, "file1.txt")
+	testContent := "Test content for error handling"
+	err = os.WriteFile(testFilePath, []byte(testContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Save original args and flags
+	oldArgs := os.Args
+	oldFlagCommandLine := flag.CommandLine
+
+	// Restore original values when the test completes
+	defer func() {
+		os.Args = oldArgs
+		flag.CommandLine = oldFlagCommandLine
+	}()
+
+	// PART 1: Test invalid directory path
+	// Create a path to a file in a non-existent directory
+	nonExistentDir := filepath.Join(tempDir, "non-existent-dir")
+	invalidPath := filepath.Join(nonExistentDir, "output.md")
+
+	// Set up command line arguments for the test
+	os.Args = []string{"handoff", "-output=" + invalidPath, tempDir}
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	// Parse flags
+	config, outputPath, _, _ := parseConfig()
+
+	// Verify parsed arguments
+	if outputPath != invalidPath {
+		t.Errorf("Expected output path %q, got %q", invalidPath, outputPath)
+	}
+
+	// Resolve the output path - this should work, but the directory doesn't exist
+	absOutputPath, err := resolveOutputPath(outputPath)
+	if err != nil {
+		t.Fatalf("Failed to resolve output path: %v", err)
+	}
+
+	// Process the project files
+	formattedContent, err := handoff.ProcessProject([]string{tempDir}, config)
+	if err != nil {
+		t.Fatalf("Failed to process project: %v", err)
+	}
+
+	// Attempt to write to the file - this should fail because the directory doesn't exist
+	err = handoff.WriteToFile(formattedContent, absOutputPath)
+	if err == nil {
+		t.Errorf("Expected an error when writing to a non-existent directory, but got none")
+	} else {
+		// Verify the error message indicates the directory issue
+		if !strings.Contains(err.Error(), "no such file or directory") {
+			t.Errorf("Expected 'no such file or directory' error, got: %v", err)
+		}
+	}
+
+	// PART 2: Test inaccessible path due to permissions
+	// Skip if running as root, as root can write anywhere
+	if os.Geteuid() == 0 {
+		t.Skip("Skipping permission test when running as root")
+	}
+
+	// Create a read-only directory
+	readOnlyDir := filepath.Join(tempDir, "read-only-dir")
+	err = os.Mkdir(readOnlyDir, 0500) // read + execute, no write
+	if err != nil {
+		t.Fatalf("Failed to create read-only directory: %v", err)
+	}
+
+	// Set up a path to a file in the read-only directory
+	readOnlyPath := filepath.Join(readOnlyDir, "output.md")
+
+	// Set up command line arguments for the test
+	os.Args = []string{"handoff", "-output=" + readOnlyPath, tempDir}
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	// Parse flags
+	config, outputPath, _, _ = parseConfig()
+
+	// Verify parsed arguments
+	if outputPath != readOnlyPath {
+		t.Errorf("Expected output path %q, got %q", readOnlyPath, outputPath)
+	}
+
+	// Resolve the output path
+	absOutputPath, err = resolveOutputPath(outputPath)
+	if err != nil {
+		t.Fatalf("Failed to resolve output path: %v", err)
+	}
+
+	// Attempt to write to the file - this should fail due to permissions
+	err = handoff.WriteToFile(formattedContent, absOutputPath)
+	if err == nil {
+		t.Errorf("Expected a permission error when writing to a read-only directory, but got none")
+	} else {
+		// Verify the error message indicates the permission issue
+		if !strings.Contains(err.Error(), "permission denied") {
+			t.Errorf("Expected 'permission denied' error, got: %v", err)
+		}
+	}
+}
