@@ -22,7 +22,7 @@
   - **Depends On:** "Add -output command line flag"
   - **AC Ref:** Task 3 "Implement File Writing Logic", Consideration "File Path Resolution"
 
-- [ ] **Implement file existence check**
+- [x] **Implement file existence check**
   - **Action:** Add code to check if the output file already exists before writing to it, and refuse to overwrite unless -force flag is specified.
   - **Depends On:** "Implement path resolution and validation", "Add -force command line flag"
   - **AC Ref:** Task 3 "Implement File Writing Logic", Updated requirement for file overwrite protection

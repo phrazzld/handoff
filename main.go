@@ -100,6 +100,23 @@ func resolveOutputPath(path string) (string, error) {
 	return absPath, nil
 }
 
+// checkFileExists checks if a file exists at the specified path.
+// It returns true if the file exists, false otherwise.
+// An error is returned if there's a problem checking file existence (e.g., permission issues).
+func checkFileExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		// File exists
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		// File does not exist
+		return false, nil
+	}
+	// Some other error occurred (e.g., permission denied)
+	return false, fmt.Errorf("cannot check if file exists: %w", err)
+}
+
 func main() {
 	// Parse command-line flags and get configuration
 	config, outputFile, force, dryRun := parseConfig()
@@ -115,6 +132,20 @@ func main() {
 			os.Exit(1)
 		}
 		logger.Verbose("Output will be written to: %s", absOutputPath)
+		
+		// Check if the file exists and handle according to force flag
+		exists, err := checkFileExists(absOutputPath)
+		if err != nil {
+			logger.Error("Error checking output file: %v", err)
+			os.Exit(1)
+		}
+		
+		if exists && !force {
+			logger.Error("Output file %s already exists. Use -force flag to overwrite.", absOutputPath)
+			os.Exit(1)
+		} else if exists && force {
+			logger.Verbose("Output file %s exists, will be overwritten because -force flag is set", absOutputPath)
+		}
 	}
 
 	// Check if we have any paths to process
