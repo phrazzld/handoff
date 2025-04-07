@@ -2,13 +2,14 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	
+
 	handoff "github.com/phrazzld/handoff/lib"
 )
 
@@ -105,7 +106,7 @@ func TestProcessorFunc(t *testing.T) {
 	// Test with text content
 	filePath := "/path/to/file.txt"
 	fileContent := []byte("Test content")
-	
+
 	result := processor(filePath, fileContent)
 
 	// Check the result
@@ -173,7 +174,7 @@ func TestProcessPath(t *testing.T) {
 	if builder.String() != "" {
 		t.Errorf("Expected empty result for non-existent path, but got %q", builder.String())
 	}
-	
+
 	// Note: The top-level context tags are added in main(), not in processPath()
 	// so we don't test for them here
 }
@@ -214,31 +215,31 @@ func TestLogger(t *testing.T) {
 	oldStderr := os.Stderr
 	r, w, _ := os.Pipe()
 	os.Stderr = w
-	
+
 	// Create loggers
 	verboseLogger := handoff.NewLogger(true)
 	quietLogger := handoff.NewLogger(false)
-	
+
 	// Log some messages
 	verboseLogger.Info("Info message")
 	verboseLogger.Warn("Warning message")
 	verboseLogger.Error("Error message")
 	verboseLogger.Verbose("Verbose message")
-	
+
 	quietLogger.Info("Info message from quiet logger")
 	quietLogger.Warn("Warning message from quiet logger")
 	quietLogger.Error("Error message from quiet logger")
 	quietLogger.Verbose("This verbose message should not appear")
-	
+
 	// Close the writer and restore stderr
 	w.Close()
 	os.Stderr = oldStderr
-	
+
 	// Read the output
 	var buf bytes.Buffer
 	_, _ = io.Copy(&buf, r)
 	output := buf.String()
-	
+
 	// Check that messages were logged correctly
 	if !strings.Contains(output, "Info message") {
 		t.Error("Info message not found in logger output")
@@ -252,7 +253,7 @@ func TestLogger(t *testing.T) {
 	if !strings.Contains(output, "Verbose message") {
 		t.Error("Verbose message not found in logger output")
 	}
-	
+
 	// Check that quiet logger suppresses verbose messages
 	if strings.Contains(output, "This verbose message should not appear") {
 		t.Error("Verbose message from quiet logger should not appear")
@@ -263,7 +264,7 @@ func TestLogger(t *testing.T) {
 func TestWrapInContext(t *testing.T) {
 	input := "test content"
 	expected := "<context>\ntest content</context>"
-	
+
 	result := wrapInContext(input)
 	if result != expected {
 		t.Errorf("wrapInContext(%q) = %q, want %q", input, result, expected)
@@ -276,27 +277,27 @@ func TestLogStatistics(t *testing.T) {
 	oldStderr := os.Stderr
 	r, w, _ := os.Pipe()
 	os.Stderr = w
-	
+
 	// Create a logger
 	logger := handoff.NewLogger(true)
-	
+
 	// Mock content and config
 	content := "Line 1\nLine 2\nLine 3\nThis is a test of the statistics function.\n"
 	config := handoff.NewConfig()
 	config.Verbose = true
-	
+
 	// Call logStatistics
 	logStatistics(content, 3, 5, config, logger)
-	
+
 	// Close the writer and restore stderr
 	w.Close()
 	os.Stderr = oldStderr
-	
+
 	// Read the output
 	var buf bytes.Buffer
 	_, _ = io.Copy(&buf, r)
 	output := buf.String()
-	
+
 	// Check that statistics were logged correctly
 	statsToCheck := []string{
 		"Handoff complete:",
@@ -306,30 +307,30 @@ func TestLogStatistics(t *testing.T) {
 		"Estimated tokens: " + fmt.Sprintf("%d", estimateTokenCount(content)),
 		"Processed 3/5 files",
 	}
-	
+
 	for _, stat := range statsToCheck {
 		if !strings.Contains(output, stat) {
 			t.Errorf("Expected output to contain %q, but got %q", stat, output)
 		}
 	}
-	
+
 	// Test with verbose config (since DryRun was moved)
 	oldStderr = os.Stderr
 	r, w, _ = os.Pipe()
 	os.Stderr = w
-	
+
 	verboseConfig := handoff.NewConfig()
 	verboseConfig.Verbose = true
-	
+
 	logStatistics(content, 3, 5, verboseConfig, logger)
-	
+
 	w.Close()
 	os.Stderr = oldStderr
-	
+
 	buf.Reset()
 	_, _ = io.Copy(&buf, r)
 	dryRunOutput := buf.String()
-	
+
 	if !strings.Contains(dryRunOutput, "Processed 3/5 files") {
 		t.Errorf("Expected output to mention processed files, but got %q", dryRunOutput)
 	}
@@ -384,6 +385,80 @@ func TestEstimateTokenCount(t *testing.T) {
 			result := estimateTokenCount(tc.input)
 			if result != tc.expected {
 				t.Errorf("estimateTokenCount(%q) = %d, want %d", tc.input, result, tc.expected)
+			}
+		})
+	}
+}
+
+// TestParseConfigOutputAndForceFlags tests that parseConfig correctly parses -output and -force flags
+func TestParseConfigOutputAndForceFlags(t *testing.T) {
+	// Save original command line arguments and flags
+	oldArgs := os.Args
+	oldFlagCommandLine := flag.CommandLine
+
+	// Restore original values when the test completes
+	defer func() {
+		os.Args = oldArgs
+		flag.CommandLine = oldFlagCommandLine
+	}()
+
+	testCases := []struct {
+		name           string
+		args           []string
+		expectedOutput string
+		expectedForce  bool
+	}{
+		{
+			name:           "No flags",
+			args:           []string{"handoff", "file1.go", "file2.go"},
+			expectedOutput: "",
+			expectedForce:  false,
+		},
+		{
+			name:           "Output flag only",
+			args:           []string{"handoff", "-output=output.md", "file1.go"},
+			expectedOutput: "output.md",
+			expectedForce:  false,
+		},
+		{
+			name:           "Force flag only",
+			args:           []string{"handoff", "-force", "file1.go"},
+			expectedOutput: "",
+			expectedForce:  true,
+		},
+		{
+			name:           "Both flags",
+			args:           []string{"handoff", "-output=HANDOFF.md", "-force", "file1.go"},
+			expectedOutput: "HANDOFF.md",
+			expectedForce:  true,
+		},
+		{
+			name:           "Alternative flag order",
+			args:           []string{"handoff", "-force", "-output=custom.md", "file1.go"},
+			expectedOutput: "custom.md",
+			expectedForce:  true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Reset command line flags for each test case
+			flag.CommandLine = flag.NewFlagSet(tc.args[0], flag.ExitOnError)
+
+			// Set up mock command line arguments
+			os.Args = tc.args
+
+			// Call parseConfig
+			_, outputFile, force, _ := parseConfig()
+
+			// Verify output file path
+			if outputFile != tc.expectedOutput {
+				t.Errorf("Expected output file %q, got %q", tc.expectedOutput, outputFile)
+			}
+
+			// Verify force flag
+			if force != tc.expectedForce {
+				t.Errorf("Expected force flag %v, got %v", tc.expectedForce, force)
 			}
 		})
 	}

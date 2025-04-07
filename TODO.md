@@ -57,7 +57,7 @@
   - **Depends On:** "Implement output precedence logic"
   - **AC Ref:** Task 6 "Update Documentation"
 
-- [ ] **Add unit test for parseConfig with -output and -force flags**
+- [x] **Add unit test for parseConfig with -output and -force flags**
   - **Action:** Update or add unit tests to verify the -output and -force flags are correctly parsed and returned by parseConfig.
   - **Depends On:** "Add -output command line flag", "Add -force command line flag"
   - **AC Ref:** Task 7 "Add/Update Tests", Testing Strategy "Unit Tests"
