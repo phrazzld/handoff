@@ -4,7 +4,7 @@ package main
 import (
 	"strings"
 	"unicode"
-	
+
 	handoff "github.com/phrazzld/handoff/lib"
 )
 
@@ -38,14 +38,14 @@ func logStatistics(content string, fileCount int, totalFiles int, config *handof
 	charCount := len(content)
 	lineCount := strings.Count(content, "\n") + 1
 	tokenCount := estimateTokenCount(content)
-	
+
 	// Log statistics
 	logger.Info("Handoff complete:")
 	logger.Info("- Files: %d", fileCount)
 	logger.Info("- Lines: %d", lineCount)
 	logger.Info("- Characters: %d", charCount)
 	logger.Info("- Estimated tokens: %d", tokenCount)
-	
+
 	if config.Verbose {
 		logger.Verbose("Processed %d/%d files", fileCount, totalFiles)
 	}

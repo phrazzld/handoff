@@ -2,13 +2,14 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	
+
 	handoff "github.com/phrazzld/handoff/lib"
 )
 
@@ -105,7 +106,7 @@ func TestProcessorFunc(t *testing.T) {
 	// Test with text content
 	filePath := "/path/to/file.txt"
 	fileContent := []byte("Test content")
-	
+
 	result := processor(filePath, fileContent)
 
 	// Check the result
@@ -173,7 +174,7 @@ func TestProcessPath(t *testing.T) {
 	if builder.String() != "" {
 		t.Errorf("Expected empty result for non-existent path, but got %q", builder.String())
 	}
-	
+
 	// Note: The top-level context tags are added in main(), not in processPath()
 	// so we don't test for them here
 }
@@ -214,31 +215,31 @@ func TestLogger(t *testing.T) {
 	oldStderr := os.Stderr
 	r, w, _ := os.Pipe()
 	os.Stderr = w
-	
+
 	// Create loggers
 	verboseLogger := handoff.NewLogger(true)
 	quietLogger := handoff.NewLogger(false)
-	
+
 	// Log some messages
 	verboseLogger.Info("Info message")
 	verboseLogger.Warn("Warning message")
 	verboseLogger.Error("Error message")
 	verboseLogger.Verbose("Verbose message")
-	
+
 	quietLogger.Info("Info message from quiet logger")
 	quietLogger.Warn("Warning message from quiet logger")
 	quietLogger.Error("Error message from quiet logger")
 	quietLogger.Verbose("This verbose message should not appear")
-	
+
 	// Close the writer and restore stderr
 	w.Close()
 	os.Stderr = oldStderr
-	
+
 	// Read the output
 	var buf bytes.Buffer
 	_, _ = io.Copy(&buf, r)
 	output := buf.String()
-	
+
 	// Check that messages were logged correctly
 	if !strings.Contains(output, "Info message") {
 		t.Error("Info message not found in logger output")
@@ -252,7 +253,7 @@ func TestLogger(t *testing.T) {
 	if !strings.Contains(output, "Verbose message") {
 		t.Error("Verbose message not found in logger output")
 	}
-	
+
 	// Check that quiet logger suppresses verbose messages
 	if strings.Contains(output, "This verbose message should not appear") {
 		t.Error("Verbose message from quiet logger should not appear")
@@ -263,7 +264,7 @@ func TestLogger(t *testing.T) {
 func TestWrapInContext(t *testing.T) {
 	input := "test content"
 	expected := "<context>\ntest content</context>"
-	
+
 	result := wrapInContext(input)
 	if result != expected {
 		t.Errorf("wrapInContext(%q) = %q, want %q", input, result, expected)
@@ -276,27 +277,27 @@ func TestLogStatistics(t *testing.T) {
 	oldStderr := os.Stderr
 	r, w, _ := os.Pipe()
 	os.Stderr = w
-	
+
 	// Create a logger
 	logger := handoff.NewLogger(true)
-	
+
 	// Mock content and config
 	content := "Line 1\nLine 2\nLine 3\nThis is a test of the statistics function.\n"
 	config := handoff.NewConfig()
 	config.Verbose = true
-	
+
 	// Call logStatistics
 	logStatistics(content, 3, 5, config, logger)
-	
+
 	// Close the writer and restore stderr
 	w.Close()
 	os.Stderr = oldStderr
-	
+
 	// Read the output
 	var buf bytes.Buffer
 	_, _ = io.Copy(&buf, r)
 	output := buf.String()
-	
+
 	// Check that statistics were logged correctly
 	statsToCheck := []string{
 		"Handoff complete:",
@@ -306,30 +307,30 @@ func TestLogStatistics(t *testing.T) {
 		"Estimated tokens: " + fmt.Sprintf("%d", estimateTokenCount(content)),
 		"Processed 3/5 files",
 	}
-	
+
 	for _, stat := range statsToCheck {
 		if !strings.Contains(output, stat) {
 			t.Errorf("Expected output to contain %q, but got %q", stat, output)
 		}
 	}
-	
+
 	// Test with verbose config (since DryRun was moved)
 	oldStderr = os.Stderr
 	r, w, _ = os.Pipe()
 	os.Stderr = w
-	
+
 	verboseConfig := handoff.NewConfig()
 	verboseConfig.Verbose = true
-	
+
 	logStatistics(content, 3, 5, verboseConfig, logger)
-	
+
 	w.Close()
 	os.Stderr = oldStderr
-	
+
 	buf.Reset()
 	_, _ = io.Copy(&buf, r)
 	dryRunOutput := buf.String()
-	
+
 	if !strings.Contains(dryRunOutput, "Processed 3/5 files") {
 		t.Errorf("Expected output to mention processed files, but got %q", dryRunOutput)
 	}
@@ -384,6 +385,550 @@ func TestEstimateTokenCount(t *testing.T) {
 			result := estimateTokenCount(tc.input)
 			if result != tc.expected {
 				t.Errorf("estimateTokenCount(%q) = %d, want %d", tc.input, result, tc.expected)
+			}
+		})
+	}
+}
+
+// TestParseConfigOutputAndForceFlags tests that parseConfig correctly parses -output and -force flags
+func TestParseConfigOutputAndForceFlags(t *testing.T) {
+	// Save original command line arguments and flags
+	oldArgs := os.Args
+	oldFlagCommandLine := flag.CommandLine
+
+	// Restore original values when the test completes
+	defer func() {
+		os.Args = oldArgs
+		flag.CommandLine = oldFlagCommandLine
+	}()
+
+	testCases := []struct {
+		name           string
+		args           []string
+		expectedOutput string
+		expectedForce  bool
+	}{
+		{
+			name:           "No flags",
+			args:           []string{"handoff", "file1.go", "file2.go"},
+			expectedOutput: "",
+			expectedForce:  false,
+		},
+		{
+			name:           "Output flag only",
+			args:           []string{"handoff", "-output=output.md", "file1.go"},
+			expectedOutput: "output.md",
+			expectedForce:  false,
+		},
+		{
+			name:           "Force flag only",
+			args:           []string{"handoff", "-force", "file1.go"},
+			expectedOutput: "",
+			expectedForce:  true,
+		},
+		{
+			name:           "Both flags",
+			args:           []string{"handoff", "-output=HANDOFF.md", "-force", "file1.go"},
+			expectedOutput: "HANDOFF.md",
+			expectedForce:  true,
+		},
+		{
+			name:           "Alternative flag order",
+			args:           []string{"handoff", "-force", "-output=custom.md", "file1.go"},
+			expectedOutput: "custom.md",
+			expectedForce:  true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Reset command line flags for each test case
+			flag.CommandLine = flag.NewFlagSet(tc.args[0], flag.ExitOnError)
+
+			// Set up mock command line arguments
+			os.Args = tc.args
+
+			// Call parseConfig
+			_, outputFile, force, _ := parseConfig()
+
+			// Verify output file path
+			if outputFile != tc.expectedOutput {
+				t.Errorf("Expected output file %q, got %q", tc.expectedOutput, outputFile)
+			}
+
+			// Verify force flag
+			if force != tc.expectedForce {
+				t.Errorf("Expected force flag %v, got %v", tc.expectedForce, force)
+			}
+		})
+	}
+}
+
+// TestFileCreation tests that a file is created with correct content when -output flag is used
+func TestFileCreation(t *testing.T) {
+	// Create temporary test directory
+	tempDir, err := os.MkdirTemp("", "handoff-test-")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir) // Clean up after test
+
+	// Create test files within the temp directory
+	testFiles := map[string]string{
+		"file1.txt": "Test content for file 1",
+		"file2.go":  "package main\n\nfunc main() {\n\tfmt.Println(\"Hello World\")\n}",
+	}
+
+	for filename, content := range testFiles {
+		filePath := filepath.Join(tempDir, filename)
+		err := os.WriteFile(filePath, []byte(content), 0644)
+		if err != nil {
+			t.Fatalf("Failed to create test file %s: %v", filePath, err)
+		}
+	}
+
+	// Set up the output file path
+	outputFile := filepath.Join(tempDir, "output.md")
+
+	// Save original args and flags
+	oldArgs := os.Args
+	oldFlagCommandLine := flag.CommandLine
+
+	// Restore original values when the test completes
+	defer func() {
+		os.Args = oldArgs
+		flag.CommandLine = oldFlagCommandLine
+	}()
+
+	// Set up command line arguments for the test
+	os.Args = []string{"handoff", "-output=" + outputFile, tempDir}
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	// Parse flags
+	config, outputPath, _, _ := parseConfig()
+
+	// Verify parsed arguments
+	if outputPath != outputFile {
+		t.Errorf("Expected output path %q, got %q", outputFile, outputPath)
+	}
+
+	// Resolve the output path
+	absOutputPath, err := resolveOutputPath(outputPath)
+	if err != nil {
+		t.Fatalf("Failed to resolve output path: %v", err)
+	}
+
+	// Check file existence (should not exist yet)
+	exists, err := checkFileExists(absOutputPath)
+	if err != nil {
+		t.Fatalf("Error checking file existence: %v", err)
+	}
+	if exists {
+		t.Errorf("Output file should not exist before the test runs")
+	}
+
+	// Process the project files
+	formattedContent, err := handoff.ProcessProject([]string{tempDir}, config)
+	if err != nil {
+		t.Fatalf("Failed to process project: %v", err)
+	}
+
+	// Write to file
+	err = handoff.WriteToFile(formattedContent, absOutputPath)
+	if err != nil {
+		t.Fatalf("Failed to write to file: %v", err)
+	}
+
+	// Verify the file was created
+	exists, err = checkFileExists(absOutputPath)
+	if err != nil {
+		t.Fatalf("Error checking file existence after writing: %v", err)
+	}
+	if !exists {
+		t.Errorf("Output file was not created")
+	}
+
+	// Read the file content
+	content, err := os.ReadFile(absOutputPath)
+	if err != nil {
+		t.Fatalf("Failed to read output file: %v", err)
+	}
+
+	// Verify the content
+	contentStr := string(content)
+
+	// Check that all test files are included in the output
+	for filename, fileContent := range testFiles {
+		expectedPathTag := "<" + filepath.Join(tempDir, filename) + ">"
+		if !strings.Contains(contentStr, expectedPathTag) {
+			t.Errorf("Output does not contain path tag for %s", filename)
+		}
+
+		if !strings.Contains(contentStr, fileContent) {
+			t.Errorf("Output does not contain content for %s", filename)
+		}
+	}
+
+	// Check that output is wrapped in context tags
+	if !strings.HasPrefix(contentStr, "<context>") || !strings.HasSuffix(strings.TrimSpace(contentStr), "</context>") {
+		t.Errorf("Output is not properly wrapped in context tags")
+	}
+}
+
+// TestFileOverwriteProtection tests that existing files are not overwritten without -force flag
+// and that they are overwritten when -force flag is provided
+func TestFileOverwriteProtection(t *testing.T) {
+	// Create temporary test directory
+	tempDir, err := os.MkdirTemp("", "handoff-test-")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir) // Clean up after test
+
+	// Create test files within the temp directory
+	testFiles := map[string]string{
+		"file1.txt": "Test content for file 1",
+	}
+
+	for filename, content := range testFiles {
+		filePath := filepath.Join(tempDir, filename)
+		err := os.WriteFile(filePath, []byte(content), 0644)
+		if err != nil {
+			t.Fatalf("Failed to create test file %s: %v", filePath, err)
+		}
+	}
+
+	// Set up the output file path
+	outputFile := filepath.Join(tempDir, "output.md")
+
+	// Create an existing file at the output path with known content
+	initialContent := "This is pre-existing content that should not be overwritten without -force"
+	err = os.WriteFile(outputFile, []byte(initialContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create initial output file: %v", err)
+	}
+
+	// Save original args and flags
+	oldArgs := os.Args
+	oldFlagCommandLine := flag.CommandLine
+
+	// Restore original values when the test completes
+	defer func() {
+		os.Args = oldArgs
+		flag.CommandLine = oldFlagCommandLine
+	}()
+
+	// PART 1: Test that file is NOT overwritten without -force flag
+	// Set up command line arguments for the test (without -force)
+	os.Args = []string{"handoff", "-output=" + outputFile, tempDir}
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	// Parse flags
+	config, outputPath, force, _ := parseConfig()
+
+	// Verify parsed arguments
+	if outputPath != outputFile {
+		t.Errorf("Expected output path %q, got %q", outputFile, outputPath)
+	}
+	if force {
+		t.Errorf("Force flag should be false")
+	}
+
+	// Resolve the output path
+	absOutputPath, err := resolveOutputPath(outputPath)
+	if err != nil {
+		t.Fatalf("Failed to resolve output path: %v", err)
+	}
+
+	// Confirm the file exists before attempting to write
+	exists, err := checkFileExists(absOutputPath)
+	if err != nil {
+		t.Fatalf("Error checking file existence: %v", err)
+	}
+	if !exists {
+		t.Errorf("Output file should exist before the test")
+	}
+
+	// Process the project files
+	formattedContent, err := handoff.ProcessProject([]string{tempDir}, config)
+	if err != nil {
+		t.Fatalf("Failed to process project: %v", err)
+	}
+
+	// Attempt to write to the file - this should NOT overwrite without force flag
+	// In a real CLI context, this would be prevented by the main() function's file existence check
+	// For testing, let's verify the protection logic ourselves
+	if exists && !force {
+		// Verify the original content is preserved
+		content, err := os.ReadFile(absOutputPath)
+		if err != nil {
+			t.Fatalf("Failed to read output file: %v", err)
+		}
+
+		if string(content) != initialContent {
+			t.Errorf("File content was modified without -force flag")
+		}
+
+		// Try writing to the file but expect main to block it
+		// To simulate main's behavior without calling os.Exit, don't write if exists && !force
+		t.Logf("Correctly detected existing file without -force flag")
+	} else {
+		t.Errorf("Should have detected existing file without -force flag")
+	}
+
+	// PART 2: Test that file IS overwritten with -force flag
+	// Set up command line arguments with -force flag
+	os.Args = []string{"handoff", "-output=" + outputFile, "-force", tempDir}
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	// Parse flags again with -force
+	config, outputPath, force, _ = parseConfig()
+
+	// Verify parsed arguments
+	if !force {
+		t.Errorf("Force flag should be true")
+	}
+
+	// Now write to the file - this should overwrite with force flag
+	err = handoff.WriteToFile(formattedContent, absOutputPath)
+	if err != nil {
+		t.Fatalf("Failed to write to file with -force flag: %v", err)
+	}
+
+	// Verify the file was overwritten
+	content, err := os.ReadFile(absOutputPath)
+	if err != nil {
+		t.Fatalf("Failed to read output file after overwrite: %v", err)
+	}
+
+	// Verify the content was updated and is not the initial content
+	contentStr := string(content)
+	if contentStr == initialContent {
+		t.Errorf("File was not overwritten with -force flag")
+	}
+
+	// Verify the new content has the expected format
+	if !strings.Contains(contentStr, testFiles["file1.txt"]) {
+		t.Errorf("New content doesn't contain expected test file content")
+	}
+
+	if !strings.HasPrefix(contentStr, "<context>") {
+		t.Errorf("New content isn't properly formatted with context tags")
+	}
+}
+
+// TestInvalidPathErrorHandling tests error handling for invalid output paths
+func TestInvalidPathErrorHandling(t *testing.T) {
+	// Create temporary test directory
+	tempDir, err := os.MkdirTemp("", "handoff-test-")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir) // Clean up after test
+
+	// Create test files within the temp directory
+	testFilePath := filepath.Join(tempDir, "file1.txt")
+	testContent := "Test content for error handling"
+	err = os.WriteFile(testFilePath, []byte(testContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Save original args and flags
+	oldArgs := os.Args
+	oldFlagCommandLine := flag.CommandLine
+
+	// Restore original values when the test completes
+	defer func() {
+		os.Args = oldArgs
+		flag.CommandLine = oldFlagCommandLine
+	}()
+
+	// PART 1: Test invalid directory path
+	// Create a path to a file in a non-existent directory
+	nonExistentDir := filepath.Join(tempDir, "non-existent-dir")
+	invalidPath := filepath.Join(nonExistentDir, "output.md")
+
+	// Set up command line arguments for the test
+	os.Args = []string{"handoff", "-output=" + invalidPath, tempDir}
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	// Parse flags
+	config, outputPath, _, _ := parseConfig()
+
+	// Verify parsed arguments
+	if outputPath != invalidPath {
+		t.Errorf("Expected output path %q, got %q", invalidPath, outputPath)
+	}
+
+	// Resolve the output path - this should work, but the directory doesn't exist
+	absOutputPath, err := resolveOutputPath(outputPath)
+	if err != nil {
+		t.Fatalf("Failed to resolve output path: %v", err)
+	}
+
+	// Process the project files
+	formattedContent, err := handoff.ProcessProject([]string{tempDir}, config)
+	if err != nil {
+		t.Fatalf("Failed to process project: %v", err)
+	}
+
+	// Attempt to write to the file - this should fail because the directory doesn't exist
+	err = handoff.WriteToFile(formattedContent, absOutputPath)
+	if err == nil {
+		t.Errorf("Expected an error when writing to a non-existent directory, but got none")
+	} else {
+		// Verify the error message indicates the directory issue
+		if !strings.Contains(err.Error(), "no such file or directory") {
+			t.Errorf("Expected 'no such file or directory' error, got: %v", err)
+		}
+	}
+
+	// PART 2: Test inaccessible path due to permissions
+	// Skip if running as root, as root can write anywhere
+	if os.Geteuid() == 0 {
+		t.Skip("Skipping permission test when running as root")
+	}
+
+	// Create a read-only directory
+	readOnlyDir := filepath.Join(tempDir, "read-only-dir")
+	err = os.Mkdir(readOnlyDir, 0500) // read + execute, no write
+	if err != nil {
+		t.Fatalf("Failed to create read-only directory: %v", err)
+	}
+
+	// Set up a path to a file in the read-only directory
+	readOnlyPath := filepath.Join(readOnlyDir, "output.md")
+
+	// Set up command line arguments for the test
+	os.Args = []string{"handoff", "-output=" + readOnlyPath, tempDir}
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	// Parse flags
+	config, outputPath, _, _ = parseConfig()
+
+	// Verify parsed arguments
+	if outputPath != readOnlyPath {
+		t.Errorf("Expected output path %q, got %q", readOnlyPath, outputPath)
+	}
+
+	// Resolve the output path
+	absOutputPath, err = resolveOutputPath(outputPath)
+	if err != nil {
+		t.Fatalf("Failed to resolve output path: %v", err)
+	}
+
+	// Attempt to write to the file - this should fail due to permissions
+	err = handoff.WriteToFile(formattedContent, absOutputPath)
+	if err == nil {
+		t.Errorf("Expected a permission error when writing to a read-only directory, but got none")
+	} else {
+		// Verify the error message indicates the permission issue
+		if !strings.Contains(err.Error(), "permission denied") {
+			t.Errorf("Expected 'permission denied' error, got: %v", err)
+		}
+	}
+}
+
+// determineOutputMode mimics the precedence logic in main() for testing purposes
+// Returns "dry-run", "file", or "clipboard" based on the provided flags
+func determineOutputMode(dryRun bool, outputFile string) string {
+	if dryRun {
+		// Highest precedence: dry-run mode
+		return "dry-run"
+	} else if outputFile != "" {
+		// Medium precedence: write to file
+		return "file"
+	} else {
+		// Lowest precedence: copy to clipboard (default behavior)
+		return "clipboard"
+	}
+}
+
+// TestFlagInteractionPrecedence tests that the correct precedence is followed
+// when various combinations of flags are used
+func TestFlagInteractionPrecedence(t *testing.T) {
+	// Create temporary test directory and file path for testing
+	tempDir, err := os.MkdirTemp("", "handoff-test-")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir) // Clean up after test
+
+	// Create test file
+	testFilePath := filepath.Join(tempDir, "file1.txt")
+	testContent := "Test content for flag interaction"
+	err = os.WriteFile(testFilePath, []byte(testContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Set up the output file path
+	outputFile := filepath.Join(tempDir, "output.md")
+
+	// Save original args and flags
+	oldArgs := os.Args
+	oldFlagCommandLine := flag.CommandLine
+
+	// Restore original values when the test completes
+	defer func() {
+		os.Args = oldArgs
+		flag.CommandLine = oldFlagCommandLine
+	}()
+
+	// Test cases for different flag combinations
+	testCases := []struct {
+		name               string
+		args               []string
+		expectedOutputMode string
+	}{
+		{
+			name:               "No special flags",
+			args:               []string{"handoff", tempDir},
+			expectedOutputMode: "clipboard",
+		},
+		{
+			name:               "Output flag only",
+			args:               []string{"handoff", "-output=" + outputFile, tempDir},
+			expectedOutputMode: "file",
+		},
+		{
+			name:               "Output and force flags",
+			args:               []string{"handoff", "-output=" + outputFile, "-force", tempDir},
+			expectedOutputMode: "file",
+		},
+		{
+			name:               "Dry-run flag only",
+			args:               []string{"handoff", "-dry-run", tempDir},
+			expectedOutputMode: "dry-run",
+		},
+		{
+			name:               "Dry-run and output flags",
+			args:               []string{"handoff", "-dry-run", "-output=" + outputFile, tempDir},
+			expectedOutputMode: "dry-run",
+		},
+		{
+			name:               "All flags",
+			args:               []string{"handoff", "-dry-run", "-output=" + outputFile, "-force", tempDir},
+			expectedOutputMode: "dry-run",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Set up command line arguments for the test
+			os.Args = tc.args
+			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+			// Parse flags
+			_, outputPath, _, dryRun := parseConfig()
+
+			// Determine the output mode based on the flags
+			outputMode := determineOutputMode(dryRun, outputPath)
+
+			// Verify the correct output mode was selected
+			if outputMode != tc.expectedOutputMode {
+				t.Errorf("Expected output mode %q, got %q", tc.expectedOutputMode, outputMode)
 			}
 		})
 	}

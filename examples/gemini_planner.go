@@ -21,7 +21,7 @@ func main() {
 	verbose := flag.Bool("verbose", false, "Enable verbose output")
 	exclude := flag.String("exclude", ".exe,.bin,.jpg,.png,.gif,.mp3,.mp4,.avi,.mov", "Comma-separated list of file extensions to exclude")
 	excludeNames := flag.String("exclude-names", "node_modules,package-lock.json,yarn.lock", "Comma-separated list of file names to exclude")
-	
+
 	flag.Parse()
 
 	// Validate inputs
@@ -47,7 +47,7 @@ func main() {
 	config.Verbose = *verbose
 	config.Exclude = *exclude
 	config.ExcludeNamesStr = *excludeNames
-	
+
 	// Process project files
 	content, err := handoff.ProcessProject([]string{*projectPath}, config)
 	if err != nil {
@@ -75,7 +75,7 @@ Format your response as a markdown document that I can use as my implementation 
 	// This is where you would send the prompt to Gemini API
 	// For this example, we'll just output that we'd send this to Gemini
 	fmt.Println("Generated Gemini prompt with codebase context.")
-	
+
 	if *verbose {
 		fmt.Printf("Prompt length: %d characters\n", len(geminiPrompt))
 		fmt.Printf("User request: %s\n", finalPrompt)
@@ -90,7 +90,7 @@ Format your response as a markdown document that I can use as my implementation 
 	if !filepath.IsAbs(outputPath) {
 		outputPath = filepath.Join(*projectPath, outputPath)
 	}
-	
+
 	if err := handoff.WriteToFile(geminiResponse, outputPath); err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing plan to file: %v\n", err)
 		os.Exit(1)
