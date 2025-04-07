@@ -4,31 +4,21 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
+
+	handoff "github.com/phrazzld/handoff/lib"
 )
 
-// ProcessorFunc is a function type that processes a file's content and returns formatted output
-type ProcessorFunc func(filePath string, content []byte) string
-
-// Config holds application configuration settings
-type Config struct {
-	Verbose        bool
-	DryRun         bool
-	Include        string
-	Exclude        string
-	ExcludeNamesStr string
-	Format         string
-	IncludeExts    []string
-	ExcludeExts    []string
-	ExcludeNames   []string
-}
-
 // parseConfig defines and parses command-line flags, processes include/exclude extensions,
-// and returns a populated Config struct.
-func parseConfig() Config {
-	var config Config
+// and returns a populated Config struct and dry run flag.
+func parseConfig() (*handoff.Config, bool) {
+	config := handoff.NewConfig()
+	
+	// Define flags
+	var dryRun bool
 	flag.BoolVar(&config.Verbose, "verbose", false, "Enable verbose output")
-	flag.BoolVar(&config.DryRun, "dry-run", false, "Preview what would be copied without actually copying")
+	flag.BoolVar(&dryRun, "dry-run", false, "Preview what would be copied without actually copying")
 	flag.StringVar(&config.Include, "include", "", "Comma-separated list of file extensions to include (e.g., .txt,.go)")
 	flag.StringVar(&config.Exclude, "exclude", "", "Comma-separated list of file extensions to exclude (e.g., .exe,.bin)")
 	flag.StringVar(&config.ExcludeNamesStr, "exclude-names", "", "Comma-separated list of file names to exclude (e.g., package-lock.json,yarn.lock)")
@@ -37,40 +27,63 @@ func parseConfig() Config {
 	// Parse command-line flags
 	flag.Parse()
 
-	// Process include/exclude extensions
-	if config.Include != "" {
-		config.IncludeExts = strings.Split(config.Include, ",")
-		for i, ext := range config.IncludeExts {
-			config.IncludeExts[i] = strings.TrimSpace(ext)
-			if !strings.HasPrefix(config.IncludeExts[i], ".") {
-				config.IncludeExts[i] = "." + config.IncludeExts[i]
-			}
+	// Process config (converts include/exclude strings to slices)
+	config.ProcessConfig()
+	
+	return config, dryRun
+}
+
+// copyToClipboard copies text to the system clipboard with enhanced error reporting.
+func copyToClipboard(text string) error {
+	var errors []string
+	
+	// Try pbcopy (macOS)
+	if _, err := exec.LookPath("pbcopy"); err == nil {
+		cmd := exec.Command("pbcopy")
+		cmd.Stdin = strings.NewReader(text)
+		if err := cmd.Run(); err == nil {
+			return nil // Success
+		} else {
+			errors = append(errors, fmt.Sprintf("pbcopy failed: %v", err))
 		}
-	}
-	if config.Exclude != "" {
-		config.ExcludeExts = strings.Split(config.Exclude, ",")
-		for i, ext := range config.ExcludeExts {
-			config.ExcludeExts[i] = strings.TrimSpace(ext)
-			if !strings.HasPrefix(config.ExcludeExts[i], ".") {
-				config.ExcludeExts[i] = "." + config.ExcludeExts[i]
-			}
-		}
-	}
-	// Process exclude names
-	if config.ExcludeNamesStr != "" {
-		config.ExcludeNames = strings.Split(config.ExcludeNamesStr, ",")
-		for i, name := range config.ExcludeNames {
-			config.ExcludeNames[i] = strings.TrimSpace(name)
-		}
+	} else {
+		errors = append(errors, "pbcopy not found")
 	}
 	
-	return config
+	// Try xclip (X11/Linux)
+	if _, err := exec.LookPath("xclip"); err == nil {
+		cmd := exec.Command("xclip", "-selection", "clipboard")
+		cmd.Stdin = strings.NewReader(text)
+		if err := cmd.Run(); err == nil {
+			return nil // Success
+		} else {
+			errors = append(errors, fmt.Sprintf("xclip failed: %v", err))
+		}
+	} else {
+		errors = append(errors, "xclip not found")
+	}
+	
+	// Try wl-copy (Wayland/Linux)
+	if _, err := exec.LookPath("wl-copy"); err == nil {
+		cmd := exec.Command("wl-copy")
+		cmd.Stdin = strings.NewReader(text)
+		if err := cmd.Run(); err == nil {
+			return nil // Success
+		} else {
+			errors = append(errors, fmt.Sprintf("wl-copy failed: %v", err))
+		}
+	} else {
+		errors = append(errors, "wl-copy not found")
+	}
+	
+	// If we get here, all clipboard commands failed
+	return fmt.Errorf("clipboard commands failed: %s", strings.Join(errors, "; "))
 }
 
 func main() {
 	// Parse command-line flags and get configuration
-	config := parseConfig()
-	logger := newLogger(config.Verbose)
+	config, dryRun := parseConfig()
+	logger := handoff.NewLogger(config.Verbose)
 
 	// Check if we have any paths to process
 	if flag.NArg() < 1 {
@@ -79,15 +92,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Process paths
-	contentBuilder := &strings.Builder{}
-	processedFiles, totalFiles := processPaths(flag.Args(), contentBuilder, config, logger)
-	
-	// Wrap content in context tag
-	formattedContent := wrapInContext(contentBuilder.String())
+	// Process paths and get content
+	formattedContent, err := handoff.ProcessProject(flag.Args(), config)
+	if err != nil {
+		logger.Error("Failed to process project: %v", err)
+		os.Exit(1)
+	}
 	
 	// Handle dry-run or copy to clipboard
-	if config.DryRun {
+	if dryRun {
 		fmt.Println("### DRY RUN: Content that would be copied to clipboard ###")
 		fmt.Println(formattedContent)
 	} else {
@@ -98,6 +111,14 @@ func main() {
 		}
 	}
 	
-	// Log statistics
-	logStatistics(formattedContent, processedFiles, totalFiles, config, logger)
+	// Calculate and log statistics
+	charCount, lineCount, tokenCount := handoff.CalculateStatistics(formattedContent)
+	// Count processed files from the content
+	processedFiles := strings.Count(formattedContent, "</")
+	
+	logger.Info("Handoff complete:")
+	logger.Info("- Files: %d", processedFiles)
+	logger.Info("- Lines: %d", lineCount)
+	logger.Info("- Characters: %d", charCount)
+	logger.Info("- Estimated tokens: %d", tokenCount)
 }

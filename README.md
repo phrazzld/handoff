@@ -1,15 +1,17 @@
 # Handoff
 
-A command-line utility to copy file contents to the clipboard in a formatted way. Perfect for quickly sharing code snippets, documentation, or any text files with others.
+A tool to collect and format code from multiple files for sharing with AI assistants or other programs.
 
-## Purpose
+## Features
 
-Handoff simplifies the process of sharing file contents by:
-- Reading specified files and directories
-- Formatting the content with filenames
-- Automatically copying everything to your clipboard
-- Respecting `.gitignore` rules when processing directories
-- Providing useful statistics about the copied content
+- Collects files from specified paths (files or directories)
+- Formats file contents with customizable templates
+- Copies aggregated content to clipboard
+- Can be used as a library in other Go programs
+- Provides content statistics (files, lines, characters, tokens)
+- Supports git-aware file collection
+- Filters files by extension or name
+- Detects and skips binary files
 
 ## Installation
 
@@ -31,53 +33,64 @@ go install
 
 ## Usage
 
-### Basic Usage
+### Command Line
 
 ```bash
-# Copy a single file to clipboard
-./handoff path/to/file.txt
-
-# Copy multiple files to clipboard
-./handoff file1.go file2.go
-
-# Copy all files from a directory (respecting .gitignore)
-./handoff path/to/directory
+./handoff [options] [path1] [path2] ...
 ```
 
-### Advanced Options
+#### Options
 
-Handoff supports several command-line options for advanced usage:
+- `-verbose`: Enable verbose output
+- `-dry-run`: Preview what would be copied without actually copying
+- `-include`: Comma-separated list of file extensions to include (e.g., `.txt,.go`)
+- `-exclude`: Comma-separated list of file extensions to exclude (e.g., `.exe,.bin`)
+- `-exclude-names`: Comma-separated list of file names to exclude (e.g., `package-lock.json,yarn.lock`)
+- `-format`: Custom format for output. Use `{path}` and `{content}` as placeholders
+
+#### Examples
 
 ```bash
-# Show verbose output while processing files
-./handoff --verbose path/to/directory
+# Copy all files in the current directory
+./handoff .
 
-# Preview what would be copied without actually copying to clipboard
-./handoff --dry-run path/to/directory
+# Copy only .go files from the src directory
+./handoff -include=.go src/
 
-# Only include specific file extensions
-./handoff --include=.go,.md path/to/directory
+# Copy specific files
+./handoff main.go utils.go config.go
 
-# Exclude specific file extensions
-./handoff --exclude=.exe,.bin,.o path/to/directory
-
-# Exclude specific files by name (regardless of directory)
-./handoff --exclude-names=package-lock.json,yarn.lock path/to/directory
-
-# Use a custom format for the output
-./handoff --format="File: {path}\n{content}\n---\n" path/to/directory
+# Use a custom format
+./handoff -format="File: {path}\n```go\n{content}\n```\n\n" .
 ```
 
-### Command-line Flags
+### As a Library
 
-| Flag | Description |
-|------|-------------|
-| `--verbose` | Enable detailed output showing which files are processed |
-| `--dry-run` | Preview what would be copied without actually copying to clipboard |
-| `--include=.ext1,.ext2` | Only include files with specified extensions |
-| `--exclude=.ext1,.ext2` | Exclude files with specified extensions |
-| `--exclude-names=file1,file2` | Exclude specific files by name (e.g., package-lock.json,yarn.lock) |
-| `--format="..."` | Customize the output format using {path} and {content} placeholders |
+Handoff can also be used as a library in other Go programs:
+
+```go
+import "github.com/phrazzld/handoff/lib"
+
+// Create configuration
+config := handoff.NewConfig()
+config.Verbose = true
+config.Exclude = ".exe,.bin,.jpg,.png"
+config.ProcessConfig()
+
+// Process project files
+content, err := handoff.ProcessProject([]string{"./my-project"}, config)
+if err != nil {
+    panic(err)
+}
+
+// Use the formatted content
+fmt.Println(content)
+
+// Or write to a file
+handoff.WriteToFile(content, "output.txt")
+```
+
+Check the `examples` directory for more detailed examples.
 
 ### Output Format
 
@@ -124,6 +137,16 @@ When processing directories, Handoff respects `.gitignore` rules:
 - In Git repositories, files ignored by Git will not be included
 - In non-Git directories, hidden files (starting with `.`) will be skipped
 - This ensures that binary files, build artifacts, and other irrelevant files are not copied
+
+## Examples
+
+### Gemini Planner
+
+The `examples/gemini_planner.go` demonstrates how to use Handoff to extract code from a project and send it to Gemini to generate a technical plan.
+
+```bash
+go run examples/gemini_planner.go --project ./my-project --prompt "Add authentication to the application" --output PLAN.md
+```
 
 ## Contributing
 
