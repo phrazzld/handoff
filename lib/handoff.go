@@ -14,14 +14,14 @@ import (
 
 // Config holds application configuration settings
 type Config struct {
-	Verbose        bool
-	Include        string
-	Exclude        string
+	Verbose         bool
+	Include         string
+	Exclude         string
 	ExcludeNamesStr string
-	Format         string
-	IncludeExts    []string
-	ExcludeExts    []string
-	ExcludeNames   []string
+	Format          string
+	IncludeExts     []string
+	ExcludeExts     []string
+	ExcludeNames    []string
 }
 
 // NewConfig creates a new Config with default values.
@@ -133,7 +133,7 @@ func GetGitFiles(dir string) ([]string, error) {
 	if !GitAvailable {
 		return nil, fmt.Errorf("git not available")
 	}
-	
+
 	cmd := exec.Command("git", "-C", dir, "ls-files", "--cached", "--others", "--exclude-standard")
 	output, err := cmd.Output()
 	if err != nil {
@@ -142,7 +142,7 @@ func GetGitFiles(dir string) ([]string, error) {
 		}
 		return nil, fmt.Errorf("error running git ls-files: %v", err)
 	}
-	
+
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	var files []string
 	for _, line := range lines {
@@ -200,7 +200,7 @@ func GetFilesFromDir(dir string) ([]string, error) {
 
 // Constants for binary file detection
 const (
-	binarySampleSize           = 512  // Number of bytes to sample for binary detection
+	binarySampleSize            = 512 // Number of bytes to sample for binary detection
 	binaryNonPrintableThreshold = 0.3 // Threshold ratio of non-printable chars to consider a file binary
 )
 
@@ -242,12 +242,12 @@ func minInt(a, b int) int {
 func ShouldProcess(file string, config *Config) bool {
 	base := filepath.Base(file)
 	ext := strings.ToLower(filepath.Ext(file))
-	
+
 	// Check exclude names filter
 	if len(config.ExcludeNames) > 0 && slices.Contains(config.ExcludeNames, base) {
 		return false
 	}
-	
+
 	// Check include extensions filter
 	if len(config.IncludeExts) > 0 {
 		included := false
@@ -261,7 +261,7 @@ func ShouldProcess(file string, config *Config) bool {
 			return false
 		}
 	}
-	
+
 	// Check exclude extensions filter
 	if len(config.ExcludeExts) > 0 {
 		for _, excludeExt := range config.ExcludeExts {
@@ -270,7 +270,7 @@ func ShouldProcess(file string, config *Config) bool {
 			}
 		}
 	}
-	
+
 	return true
 }
 
@@ -286,13 +286,13 @@ func ProcessFile(filePath string, logger *Logger, config *Config, processor Proc
 		logger.Warn("stat %s: %v", filePath, statErr)
 		return ""
 	}
-	
+
 	// Check if file is gitignored
 	if IsGitIgnored(filePath) {
 		logger.Verbose("skipping gitignored file: %s", filePath)
 		return ""
 	}
-	
+
 	// Check if file should be processed based on filters
 	if !ShouldProcess(filePath, config) {
 		if len(config.ExcludeNames) > 0 && slices.Contains(config.ExcludeNames, filepath.Base(filePath)) {
@@ -300,20 +300,20 @@ func ProcessFile(filePath string, logger *Logger, config *Config, processor Proc
 		}
 		return ""
 	}
-	
+
 	// Read file content
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		logger.Warn("cannot read %s: %v", filePath, err)
 		return ""
 	}
-	
+
 	// Skip binary files
 	if IsBinaryFile(content) {
 		logger.Verbose("skipping binary file: %s", filePath)
 		return ""
 	}
-	
+
 	// Process the content
 	return processor(filePath, content)
 }
@@ -325,7 +325,7 @@ func ProcessDirectory(dirPath string, contentBuilder *strings.Builder, config *C
 		logger.Error("processing directory %s: %v", dirPath, err)
 		return
 	}
-	
+
 	for _, file := range files {
 		output := ProcessFile(file, logger, config, processor)
 		if output != "" {
@@ -358,7 +358,7 @@ func ProcessPaths(paths []string, config *Config, logger *Logger) (string, int, 
 	contentBuilder := &strings.Builder{}
 	processedFiles := 0
 	totalFiles := 0
-	
+
 	for _, path := range paths {
 		logger.Verbose("Processing path: %s", path)
 
@@ -386,7 +386,7 @@ func ProcessPaths(paths []string, config *Config, logger *Logger) (string, int, 
 		// Process the path with our custom processor
 		ProcessPathWithProcessor(path, contentBuilder, config, logger, pathProcessor)
 	}
-	
+
 	return contentBuilder.String(), processedFiles, totalFiles
 }
 
@@ -430,20 +430,20 @@ func ProcessProject(paths []string, config *Config) (string, error) {
 	if config == nil {
 		config = NewConfig()
 	}
-	
+
 	config.ProcessConfig()
 	logger := NewLogger(config.Verbose)
-	
+
 	if len(paths) == 0 {
 		return "", fmt.Errorf("no paths provided")
 	}
-	
+
 	// Process paths
 	content, processedFiles, totalFiles := ProcessPaths(paths, config, logger)
-	
+
 	// Wrap content in context tag
 	formattedContent := WrapInContext(content)
-	
+
 	// Log statistics
 	if config.Verbose {
 		charCount, lineCount, tokenCount := CalculateStatistics(formattedContent)
@@ -454,7 +454,7 @@ func ProcessProject(paths []string, config *Config) (string, error) {
 		logger.Info("- Estimated tokens: %d", tokenCount)
 		logger.Verbose("Processed %d/%d files", processedFiles, totalFiles)
 	}
-	
+
 	return formattedContent, nil
 }
 

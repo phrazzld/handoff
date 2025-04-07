@@ -6,12 +6,13 @@ A tool to collect and format code from multiple files for sharing with AI assist
 
 - Collects files from specified paths (files or directories)
 - Formats file contents with customizable templates
-- Copies aggregated content to clipboard
+- Copies aggregated content to clipboard or writes to file
 - Can be used as a library in other Go programs
 - Provides content statistics (files, lines, characters, tokens)
 - Supports git-aware file collection
 - Filters files by extension or name
 - Detects and skips binary files
+- Includes file overwrite protection
 
 ## Installation
 
@@ -43,6 +44,8 @@ go install
 
 - `-verbose`: Enable verbose output
 - `-dry-run`: Preview what would be copied without actually copying
+- `-output`: Write output to the specified file instead of clipboard (e.g., `HANDOFF.md`)
+- `-force`: Allow overwriting existing files when using `-output` flag
 - `-include`: Comma-separated list of file extensions to include (e.g., `.txt,.go`)
 - `-exclude`: Comma-separated list of file extensions to exclude (e.g., `.exe,.bin`)
 - `-exclude-names`: Comma-separated list of file names to exclude (e.g., `package-lock.json,yarn.lock`)
@@ -62,6 +65,15 @@ go install
 
 # Use a custom format
 ./handoff -format="File: {path}\n```go\n{content}\n```\n\n" .
+
+# Write output to a file instead of clipboard
+./handoff -output=HANDOFF.md .
+
+# Write output to a file, overwriting if it exists
+./handoff -output=HANDOFF.md -force .
+
+# Preview content that would be written to file
+./handoff -output=HANDOFF.md -dry-run .
 ```
 
 ### As a Library
@@ -129,7 +141,21 @@ Handoff complete:
 These statistics are particularly helpful for:
 - Understanding how much content you're sharing
 - Estimating LLM token usage when pasting into AI tools
-- Monitoring the size of your clipboard content
+- Monitoring the size of your clipboard or file content
+
+### Output Mode Precedence
+
+When multiple output options are specified, Handoff follows this precedence:
+1. `-dry-run`: Highest priority - outputs to screen only, no clipboard/file modifications
+2. `-output`: Medium priority - writes to the specified file
+3. Clipboard: Default behavior - copies to clipboard when no other output option is specified
+
+### File Overwrite Protection
+
+When using the `-output` flag, Handoff includes built-in protection against accidental file overwrites:
+- If the specified output file already exists, Handoff will refuse to overwrite it
+- To allow overwriting an existing file, use the `-force` flag
+- This ensures you don't accidentally lose content in existing files
 
 ## Git Integration
 
