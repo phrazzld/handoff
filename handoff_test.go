@@ -829,3 +829,107 @@ func TestInvalidPathErrorHandling(t *testing.T) {
 		}
 	}
 }
+
+// determineOutputMode mimics the precedence logic in main() for testing purposes
+// Returns "dry-run", "file", or "clipboard" based on the provided flags
+func determineOutputMode(dryRun bool, outputFile string) string {
+	if dryRun {
+		// Highest precedence: dry-run mode
+		return "dry-run"
+	} else if outputFile != "" {
+		// Medium precedence: write to file
+		return "file"
+	} else {
+		// Lowest precedence: copy to clipboard (default behavior)
+		return "clipboard"
+	}
+}
+
+// TestFlagInteractionPrecedence tests that the correct precedence is followed
+// when various combinations of flags are used
+func TestFlagInteractionPrecedence(t *testing.T) {
+	// Create temporary test directory and file path for testing
+	tempDir, err := os.MkdirTemp("", "handoff-test-")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir) // Clean up after test
+
+	// Create test file
+	testFilePath := filepath.Join(tempDir, "file1.txt")
+	testContent := "Test content for flag interaction"
+	err = os.WriteFile(testFilePath, []byte(testContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Set up the output file path
+	outputFile := filepath.Join(tempDir, "output.md")
+
+	// Save original args and flags
+	oldArgs := os.Args
+	oldFlagCommandLine := flag.CommandLine
+
+	// Restore original values when the test completes
+	defer func() {
+		os.Args = oldArgs
+		flag.CommandLine = oldFlagCommandLine
+	}()
+
+	// Test cases for different flag combinations
+	testCases := []struct {
+		name               string
+		args               []string
+		expectedOutputMode string
+	}{
+		{
+			name:               "No special flags",
+			args:               []string{"handoff", tempDir},
+			expectedOutputMode: "clipboard",
+		},
+		{
+			name:               "Output flag only",
+			args:               []string{"handoff", "-output=" + outputFile, tempDir},
+			expectedOutputMode: "file",
+		},
+		{
+			name:               "Output and force flags",
+			args:               []string{"handoff", "-output=" + outputFile, "-force", tempDir},
+			expectedOutputMode: "file",
+		},
+		{
+			name:               "Dry-run flag only",
+			args:               []string{"handoff", "-dry-run", tempDir},
+			expectedOutputMode: "dry-run",
+		},
+		{
+			name:               "Dry-run and output flags",
+			args:               []string{"handoff", "-dry-run", "-output=" + outputFile, tempDir},
+			expectedOutputMode: "dry-run",
+		},
+		{
+			name:               "All flags",
+			args:               []string{"handoff", "-dry-run", "-output=" + outputFile, "-force", tempDir},
+			expectedOutputMode: "dry-run",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Set up command line arguments for the test
+			os.Args = tc.args
+			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+			// Parse flags
+			_, outputPath, _, dryRun := parseConfig()
+
+			// Determine the output mode based on the flags
+			outputMode := determineOutputMode(dryRun, outputPath)
+
+			// Verify the correct output mode was selected
+			if outputMode != tc.expectedOutputMode {
+				t.Errorf("Expected output mode %q, got %q", tc.expectedOutputMode, outputMode)
+			}
+		})
+	}
+}
