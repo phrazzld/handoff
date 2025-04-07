@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	handoff "github.com/phrazzld/handoff/lib"
@@ -84,10 +85,37 @@ func copyToClipboard(text string) error {
 	return fmt.Errorf("clipboard commands failed: %s", strings.Join(errors, "; "))
 }
 
+// resolveOutputPath converts a relative path to an absolute path.
+// It returns the absolute path and any error encountered.
+func resolveOutputPath(path string) (string, error) {
+	if path == "" {
+		return "", fmt.Errorf("output path is empty")
+	}
+	
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to determine absolute path: %w", err)
+	}
+	
+	return absPath, nil
+}
+
 func main() {
 	// Parse command-line flags and get configuration
 	config, outputFile, force, dryRun := parseConfig()
 	logger := handoff.NewLogger(config.Verbose)
+	
+	// Resolve output path if specified
+	var absOutputPath string
+	if outputFile != "" {
+		var err error
+		absOutputPath, err = resolveOutputPath(outputFile)
+		if err != nil {
+			logger.Error("Invalid output path: %v", err)
+			os.Exit(1)
+		}
+		logger.Verbose("Output will be written to: %s", absOutputPath)
+	}
 
 	// Check if we have any paths to process
 	if flag.NArg() < 1 {
