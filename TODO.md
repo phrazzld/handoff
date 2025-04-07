@@ -81,8 +81,3 @@
   - **Action:** Add test to verify correct precedence when various combinations of -output, -force, and -dry-run flags are used together.
   - **Depends On:** "Implement output precedence logic"
   - **AC Ref:** Task 7 "Add/Update Tests", Testing Strategy "Integration/CLI Tests"
-
-- [ ] **Manually test across different operating systems**
-  - **Action:** Manually test the -output functionality on different platforms (if possible) to verify cross-platform compatibility.
-  - **Depends On:** All implementation tasks
-  - **AC Ref:** Testing Strategy "Manual Testing"
