@@ -463,3 +463,114 @@ func TestParseConfigOutputAndForceFlags(t *testing.T) {
 		})
 	}
 }
+
+// TestFileCreation tests that a file is created with correct content when -output flag is used
+func TestFileCreation(t *testing.T) {
+	// Create temporary test directory
+	tempDir, err := os.MkdirTemp("", "handoff-test-")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir) // Clean up after test
+
+	// Create test files within the temp directory
+	testFiles := map[string]string{
+		"file1.txt": "Test content for file 1",
+		"file2.go":  "package main\n\nfunc main() {\n\tfmt.Println(\"Hello World\")\n}",
+	}
+
+	for filename, content := range testFiles {
+		filePath := filepath.Join(tempDir, filename)
+		err := os.WriteFile(filePath, []byte(content), 0644)
+		if err != nil {
+			t.Fatalf("Failed to create test file %s: %v", filePath, err)
+		}
+	}
+
+	// Set up the output file path
+	outputFile := filepath.Join(tempDir, "output.md")
+
+	// Save original args and flags
+	oldArgs := os.Args
+	oldFlagCommandLine := flag.CommandLine
+
+	// Restore original values when the test completes
+	defer func() {
+		os.Args = oldArgs
+		flag.CommandLine = oldFlagCommandLine
+	}()
+
+	// Set up command line arguments for the test
+	os.Args = []string{"handoff", "-output=" + outputFile, tempDir}
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	// Parse flags
+	config, outputPath, _, _ := parseConfig()
+
+	// Verify parsed arguments
+	if outputPath != outputFile {
+		t.Errorf("Expected output path %q, got %q", outputFile, outputPath)
+	}
+
+	// Resolve the output path
+	absOutputPath, err := resolveOutputPath(outputPath)
+	if err != nil {
+		t.Fatalf("Failed to resolve output path: %v", err)
+	}
+
+	// Check file existence (should not exist yet)
+	exists, err := checkFileExists(absOutputPath)
+	if err != nil {
+		t.Fatalf("Error checking file existence: %v", err)
+	}
+	if exists {
+		t.Errorf("Output file should not exist before the test runs")
+	}
+
+	// Process the project files
+	formattedContent, err := handoff.ProcessProject([]string{tempDir}, config)
+	if err != nil {
+		t.Fatalf("Failed to process project: %v", err)
+	}
+
+	// Write to file
+	err = handoff.WriteToFile(formattedContent, absOutputPath)
+	if err != nil {
+		t.Fatalf("Failed to write to file: %v", err)
+	}
+
+	// Verify the file was created
+	exists, err = checkFileExists(absOutputPath)
+	if err != nil {
+		t.Fatalf("Error checking file existence after writing: %v", err)
+	}
+	if !exists {
+		t.Errorf("Output file was not created")
+	}
+
+	// Read the file content
+	content, err := os.ReadFile(absOutputPath)
+	if err != nil {
+		t.Fatalf("Failed to read output file: %v", err)
+	}
+
+	// Verify the content
+	contentStr := string(content)
+
+	// Check that all test files are included in the output
+	for filename, fileContent := range testFiles {
+		expectedPathTag := "<" + filepath.Join(tempDir, filename) + ">"
+		if !strings.Contains(contentStr, expectedPathTag) {
+			t.Errorf("Output does not contain path tag for %s", filename)
+		}
+
+		if !strings.Contains(contentStr, fileContent) {
+			t.Errorf("Output does not contain content for %s", filename)
+		}
+	}
+
+	// Check that output is wrapped in context tags
+	if !strings.HasPrefix(contentStr, "<context>") || !strings.HasSuffix(strings.TrimSpace(contentStr), "</context>") {
+		t.Errorf("Output is not properly wrapped in context tags")
+	}
+}

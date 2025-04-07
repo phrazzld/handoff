@@ -62,7 +62,7 @@
   - **Depends On:** "Add -output command line flag", "Add -force command line flag"
   - **AC Ref:** Task 7 "Add/Update Tests", Testing Strategy "Unit Tests"
 
-- [ ] **Add integration test for file creation**
+- [x] **Add integration test for file creation**
   - **Action:** Add test to verify file is created with correct content when -output flag is used.
   - **Depends On:** "Add file output handling logic in main function"
   - **AC Ref:** Task 7 "Add/Update Tests", Testing Strategy "Integration/CLI Tests"
@@ -86,20 +86,3 @@
   - **Action:** Manually test the -output functionality on different platforms (if possible) to verify cross-platform compatibility.
   - **Depends On:** All implementation tasks
   - **AC Ref:** Testing Strategy "Manual Testing"
-
-## [!] CLARIFICATIONS NEEDED / ASSUMPTIONS
-
-- [ ] **Assumption: Default flag description is sufficient**
-  - **Context:** The plan provides a suggestion for the flag description: "Write output to the specified file instead of clipboard (e.g., HANDOFF.md)". Assuming this is sufficient and no additional clarification is needed.
-
-- [ ] **Clarification: Must implement file overwrite protection**
-  - **Context:** The plan notes in section 4: "File Overwriting: The current handoff.WriteToFile uses os.WriteFile, which will truncate and overwrite existing files." However, we need to change this behavior to protect existing files by default. If the output file already exists, warn the user and quit unless a -force flag is used.
-
-- [ ] **Assumption: Statistics log format remains unchanged**
-  - **Context:** The plan mentions ensuring statistics are still logged, but doesn't specify any changes to the statistics format. Assuming the current format is sufficient.
-
-- [ ] **Clarification: Need to add -force flag for file overwriting**
-  - **Context:** The plan doesn't mention additional flags for controlling file behavior, but we need to add a -force flag to allow overwriting of existing files. Without this flag, the tool should refuse to overwrite existing files.
-
-- [ ] **Assumption: Default file permissions (0644) are appropriate**
-  - **Context:** The existing WriteToFile function uses default 0644 permissions. Assuming these permissions are appropriate for all platforms and use cases.
