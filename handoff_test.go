@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	
+	handoff "github.com/phrazzld/handoff/lib"
 )
 
 // TestIsGitIgnored tests the isGitIgnored function
@@ -147,8 +149,9 @@ func TestProcessPath(t *testing.T) {
 
 	// Process the path (file)
 	var builder strings.Builder
-	logger := newLogger(false) // Non-verbose logger for testing
-	processPath(tmpFile.Name(), &builder, logger)
+	logger := handoff.NewLogger(false) // Non-verbose logger for testing
+	config := handoff.NewConfig()
+	processPath(tmpFile.Name(), &builder, config, logger)
 
 	// Check the result
 	result := builder.String()
@@ -166,7 +169,7 @@ func TestProcessPath(t *testing.T) {
 
 	// Test with a non-existent path
 	builder.Reset()
-	processPath("non-existent-path", &builder, logger)
+	processPath("non-existent-path", &builder, config, logger)
 	if builder.String() != "" {
 		t.Errorf("Expected empty result for non-existent path, but got %q", builder.String())
 	}
@@ -213,8 +216,8 @@ func TestLogger(t *testing.T) {
 	os.Stderr = w
 	
 	// Create loggers
-	verboseLogger := newLogger(true)
-	quietLogger := newLogger(false)
+	verboseLogger := handoff.NewLogger(true)
+	quietLogger := handoff.NewLogger(false)
 	
 	// Log some messages
 	verboseLogger.Info("Info message")
@@ -275,14 +278,12 @@ func TestLogStatistics(t *testing.T) {
 	os.Stderr = w
 	
 	// Create a logger
-	logger := newLogger(true)
+	logger := handoff.NewLogger(true)
 	
 	// Mock content and config
 	content := "Line 1\nLine 2\nLine 3\nThis is a test of the statistics function.\n"
-	config := Config{
-		Verbose: true,
-		DryRun:  false,
-	}
+	config := handoff.NewConfig()
+	config.Verbose = true
 	
 	// Call logStatistics
 	logStatistics(content, 3, 5, config, logger)
@@ -303,7 +304,7 @@ func TestLogStatistics(t *testing.T) {
 		"Lines: 5", // 4 newlines + 1 = 5 lines
 		"Characters: " + fmt.Sprintf("%d", len(content)),
 		"Estimated tokens: " + fmt.Sprintf("%d", estimateTokenCount(content)),
-		"Successfully copied content of 3/5 files",
+		"Processed 3/5 files",
 	}
 	
 	for _, stat := range statsToCheck {
@@ -312,17 +313,15 @@ func TestLogStatistics(t *testing.T) {
 		}
 	}
 	
-	// Test with dry-run config
+	// Test with verbose config (since DryRun was moved)
 	oldStderr = os.Stderr
 	r, w, _ = os.Pipe()
 	os.Stderr = w
 	
-	dryRunConfig := Config{
-		Verbose: true,
-		DryRun:  true,
-	}
+	verboseConfig := handoff.NewConfig()
+	verboseConfig.Verbose = true
 	
-	logStatistics(content, 3, 5, dryRunConfig, logger)
+	logStatistics(content, 3, 5, verboseConfig, logger)
 	
 	w.Close()
 	os.Stderr = oldStderr
@@ -332,7 +331,7 @@ func TestLogStatistics(t *testing.T) {
 	dryRunOutput := buf.String()
 	
 	if !strings.Contains(dryRunOutput, "Processed 3/5 files") {
-		t.Errorf("Expected dry-run output to mention processed files, but got %q", dryRunOutput)
+		t.Errorf("Expected output to mention processed files, but got %q", dryRunOutput)
 	}
 }
 

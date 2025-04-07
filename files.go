@@ -8,15 +8,12 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	
+	handoff "github.com/phrazzld/handoff/lib"
 )
 
-// gitAvailable indicates whether the git command is available on the system.
-var gitAvailable bool
-
-func init() {
-	_, err := exec.LookPath("git")
-	gitAvailable = err == nil
-}
+// Using the exported GitAvailable from handoff library
+var gitAvailable = handoff.GitAvailable
 
 // isGitIgnored checks if a file is gitignored or hidden.
 func isGitIgnored(file string) bool {
@@ -150,7 +147,7 @@ func minInt(a, b int) int {
 }
 
 // shouldProcess decides if a file should be processed based on all filters
-func shouldProcess(file string, config Config) bool {
+func shouldProcess(file string, config *handoff.Config) bool {
 	base := filepath.Base(file)
 	ext := strings.ToLower(filepath.Ext(file))
 	
@@ -186,7 +183,7 @@ func shouldProcess(file string, config Config) bool {
 }
 
 // processFile processes a single file with the given processor and config
-func processFile(filePath string, logger *Logger, config Config, processor ProcessorFunc) string {
+func processFile(filePath string, logger *handoff.Logger, config *handoff.Config, processor handoff.ProcessorFunc) string {
 	// First check if file exists
 	if _, statErr := os.Stat(filePath); statErr != nil {
 		if os.IsNotExist(statErr) {
@@ -230,7 +227,7 @@ func processFile(filePath string, logger *Logger, config Config, processor Proce
 }
 
 // processDirectory processes all files in a directory with the given processor and config
-func processDirectory(dirPath string, contentBuilder *strings.Builder, config Config, logger *Logger, processor ProcessorFunc) {
+func processDirectory(dirPath string, contentBuilder *strings.Builder, config *handoff.Config, logger *handoff.Logger, processor handoff.ProcessorFunc) {
 	files, err := getFilesFromDir(dirPath)
 	if err != nil {
 		logger.Error("processing directory %s: %v", dirPath, err)
@@ -246,7 +243,7 @@ func processDirectory(dirPath string, contentBuilder *strings.Builder, config Co
 }
 
 // processPathWithProcessor processes a single path (file or directory) with a custom processor function and config
-func processPathWithProcessor(path string, contentBuilder *strings.Builder, config Config, logger *Logger, processor ProcessorFunc) {
+func processPathWithProcessor(path string, contentBuilder *strings.Builder, config *handoff.Config, logger *handoff.Logger, processor handoff.ProcessorFunc) {
 	info, err := os.Stat(path)
 	if err != nil {
 		// Just log the error and continue with other paths
@@ -266,42 +263,11 @@ func processPathWithProcessor(path string, contentBuilder *strings.Builder, conf
 
 // processPath processes a single path (file or directory) with the default processor.
 // This maintains backward compatibility with existing code.
-func processPath(path string, builder *strings.Builder, config Config, logger *Logger) {
+func processPath(path string, builder *strings.Builder, config *handoff.Config, logger *handoff.Logger) {
 	processor := func(file string, content []byte) string {
 		return fmt.Sprintf("<%s>\n```\n%s\n```\n</%s>\n\n", file, string(content), file)
 	}
 	processPathWithProcessor(path, builder, config, logger, processor)
 }
 
-// processPaths processes multiple paths and returns the number of processed files and total files
-func processPaths(paths []string, contentBuilder *strings.Builder, config Config, logger *Logger) (processedFiles int, totalFiles int) {
-	for _, path := range paths {
-		logger.Verbose("Processing path: %s", path)
-
-		// Count total files before processing
-		if info, err := os.Stat(path); err == nil && !info.IsDir() {
-			totalFiles++
-		} else if err == nil && info.IsDir() {
-			if files, err := getFilesFromDir(path); err == nil {
-				totalFiles += len(files)
-			}
-		}
-
-		// Custom process function with config and progress tracking
-		pathProcessor := func(file string, fileContent []byte) string {
-			processedFiles++
-			logger.Verbose("Processing file (%d/%d): %s", processedFiles, totalFiles, file)
-
-			// Format the output using the custom format
-			output := config.Format
-			output = strings.ReplaceAll(output, "{path}", file)
-			output = strings.ReplaceAll(output, "{content}", string(fileContent))
-			return output
-		}
-
-		// Process the path with our custom processor
-		processPathWithProcessor(path, contentBuilder, config, logger, pathProcessor)
-	}
-	
-	return processedFiles, totalFiles
-}
+// This function has been moved to the library
