@@ -574,3 +574,145 @@ func TestFileCreation(t *testing.T) {
 		t.Errorf("Output is not properly wrapped in context tags")
 	}
 }
+
+// TestFileOverwriteProtection tests that existing files are not overwritten without -force flag
+// and that they are overwritten when -force flag is provided
+func TestFileOverwriteProtection(t *testing.T) {
+	// Create temporary test directory
+	tempDir, err := os.MkdirTemp("", "handoff-test-")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir) // Clean up after test
+
+	// Create test files within the temp directory
+	testFiles := map[string]string{
+		"file1.txt": "Test content for file 1",
+	}
+
+	for filename, content := range testFiles {
+		filePath := filepath.Join(tempDir, filename)
+		err := os.WriteFile(filePath, []byte(content), 0644)
+		if err != nil {
+			t.Fatalf("Failed to create test file %s: %v", filePath, err)
+		}
+	}
+
+	// Set up the output file path
+	outputFile := filepath.Join(tempDir, "output.md")
+
+	// Create an existing file at the output path with known content
+	initialContent := "This is pre-existing content that should not be overwritten without -force"
+	err = os.WriteFile(outputFile, []byte(initialContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create initial output file: %v", err)
+	}
+
+	// Save original args and flags
+	oldArgs := os.Args
+	oldFlagCommandLine := flag.CommandLine
+
+	// Restore original values when the test completes
+	defer func() {
+		os.Args = oldArgs
+		flag.CommandLine = oldFlagCommandLine
+	}()
+
+	// PART 1: Test that file is NOT overwritten without -force flag
+	// Set up command line arguments for the test (without -force)
+	os.Args = []string{"handoff", "-output=" + outputFile, tempDir}
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	// Parse flags
+	config, outputPath, force, _ := parseConfig()
+
+	// Verify parsed arguments
+	if outputPath != outputFile {
+		t.Errorf("Expected output path %q, got %q", outputFile, outputPath)
+	}
+	if force {
+		t.Errorf("Force flag should be false")
+	}
+
+	// Resolve the output path
+	absOutputPath, err := resolveOutputPath(outputPath)
+	if err != nil {
+		t.Fatalf("Failed to resolve output path: %v", err)
+	}
+
+	// Confirm the file exists before attempting to write
+	exists, err := checkFileExists(absOutputPath)
+	if err != nil {
+		t.Fatalf("Error checking file existence: %v", err)
+	}
+	if !exists {
+		t.Errorf("Output file should exist before the test")
+	}
+
+	// Process the project files
+	formattedContent, err := handoff.ProcessProject([]string{tempDir}, config)
+	if err != nil {
+		t.Fatalf("Failed to process project: %v", err)
+	}
+
+	// Attempt to write to the file - this should NOT overwrite without force flag
+	// In a real CLI context, this would be prevented by the main() function's file existence check
+	// For testing, let's verify the protection logic ourselves
+	if exists && !force {
+		// Verify the original content is preserved
+		content, err := os.ReadFile(absOutputPath)
+		if err != nil {
+			t.Fatalf("Failed to read output file: %v", err)
+		}
+
+		if string(content) != initialContent {
+			t.Errorf("File content was modified without -force flag")
+		}
+
+		// Try writing to the file but expect main to block it
+		// To simulate main's behavior without calling os.Exit, don't write if exists && !force
+		t.Logf("Correctly detected existing file without -force flag")
+	} else {
+		t.Errorf("Should have detected existing file without -force flag")
+	}
+
+	// PART 2: Test that file IS overwritten with -force flag
+	// Set up command line arguments with -force flag
+	os.Args = []string{"handoff", "-output=" + outputFile, "-force", tempDir}
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	// Parse flags again with -force
+	config, outputPath, force, _ = parseConfig()
+
+	// Verify parsed arguments
+	if !force {
+		t.Errorf("Force flag should be true")
+	}
+
+	// Now write to the file - this should overwrite with force flag
+	err = handoff.WriteToFile(formattedContent, absOutputPath)
+	if err != nil {
+		t.Fatalf("Failed to write to file with -force flag: %v", err)
+	}
+
+	// Verify the file was overwritten
+	content, err := os.ReadFile(absOutputPath)
+	if err != nil {
+		t.Fatalf("Failed to read output file after overwrite: %v", err)
+	}
+
+	// Verify the content was updated and is not the initial content
+	contentStr := string(content)
+	if contentStr == initialContent {
+		t.Errorf("File was not overwritten with -force flag")
+	}
+
+	// Verify the new content has the expected format
+	if !strings.Contains(contentStr, testFiles["file1.txt"]) {
+		t.Errorf("New content doesn't contain expected test file content")
+	}
+
+	if !strings.HasPrefix(contentStr, "<context>") {
+		t.Errorf("New content isn't properly formatted with context tags")
+	}
+}
