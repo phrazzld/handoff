@@ -170,6 +170,7 @@ func main() {
 		logger.Info("Dry run complete. No file written or clipboard modified.")
 	} else if outputFile != "" {
 		// Medium precedence: write to file
+		logger.Verbose("Writing content (%d bytes) to file: %s", len(formattedContent), absOutputPath)
 		if err := handoff.WriteToFile(formattedContent, absOutputPath); err != nil {
 			logger.Error("Failed to write to file %s: %v", absOutputPath, err)
 			os.Exit(1)
