@@ -47,7 +47,7 @@
   - **Depends On:** "Add file output handling logic in main function"
   - **AC Ref:** Task 8 "Final Logging Adjustment"
 
-- [ ] **Ensure statistics are logged regardless of output mode**
+- [x] **Ensure statistics are logged regardless of output mode**
   - **Action:** Verify that the statistics summary is always printed to stderr, regardless of whether output goes to clipboard, file, or stdout.
   - **Depends On:** "Update logging for file output operations"
   - **AC Ref:** Task 8 "Final Logging Adjustment", Consideration "Statistics Logging"
