@@ -26,6 +26,7 @@ func parseConfig() (*handoff.Config, string, bool, bool) {
 	flag.StringVar(&config.ExcludeNamesStr, "exclude-names", "", "Comma-separated list of file names to exclude (e.g., package-lock.json,yarn.lock)")
 	flag.StringVar(&config.Format, "format", "<{path}>\n```\n{content}\n```\n</{path}>\n\n", "Custom format for output. Use {path} and {content} as placeholders")
 	flag.StringVar(&outputFile, "output", "", "Write output to the specified file instead of clipboard (e.g., HANDOFF.md)")
+	flag.BoolVar(&force, "force", false, "Allow overwriting existing files when using -output flag")
 
 	// Parse command-line flags
 	flag.Parse()
