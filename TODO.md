@@ -12,7 +12,7 @@
   - **Depends On:** "Update parseConfig function signature and return values"
   - **AC Ref:** Task 1 "Add `-output` Flag"
 
-- [ ] **Add -force command line flag**
+- [x] **Add -force command line flag**
   - **Action:** Define a new boolean flag `-force` in the flags section of parseConfig function that will allow overwriting existing files.
   - **Depends On:** "Add -output command line flag"
   - **AC Ref:** Updated requirement for file overwrite protection
