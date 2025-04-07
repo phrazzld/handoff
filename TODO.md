@@ -27,7 +27,7 @@
   - **Depends On:** "Implement path resolution and validation", "Add -force command line flag"
   - **AC Ref:** Task 3 "Implement File Writing Logic", Updated requirement for file overwrite protection
 
-- [ ] **Add file output handling logic in main function**
+- [x] **Add file output handling logic in main function**
   - **Action:** Add conditional logic in main() to write content to a file when -output flag is provided, using handoff.WriteToFile function.
   - **Depends On:** "Implement file existence check"
   - **AC Ref:** Task 3 "Implement File Writing Logic"

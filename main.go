@@ -162,16 +162,26 @@ func main() {
 		os.Exit(1)
 	}
 	
-	// Handle dry-run or copy to clipboard
+	// Handle output based on precedence: dry-run > output file > clipboard
 	if dryRun {
-		fmt.Println("### DRY RUN: Content that would be copied to clipboard ###")
+		// Highest precedence: dry-run mode
+		fmt.Println("### DRY RUN: Content that would be generated ###")
 		fmt.Println(formattedContent)
+		logger.Info("Dry run complete. No file written or clipboard modified.")
+	} else if outputFile != "" {
+		// Medium precedence: write to file
+		if err := handoff.WriteToFile(formattedContent, absOutputPath); err != nil {
+			logger.Error("Failed to write to file %s: %v", absOutputPath, err)
+			os.Exit(1)
+		}
+		logger.Info("Output successfully written to %s", absOutputPath)
 	} else {
-		// Copy to clipboard
+		// Lowest precedence: copy to clipboard (default behavior)
 		if err := copyToClipboard(formattedContent); err != nil {
 			logger.Error("Failed to copy to clipboard: %v", err)
 			os.Exit(1)
 		}
+		logger.Info("Content successfully copied to clipboard.")
 	}
 	
 	// Calculate and log statistics
