@@ -11,12 +11,14 @@ import (
 )
 
 // parseConfig defines and parses command-line flags, processes include/exclude extensions,
-// and returns a populated Config struct and dry run flag.
-func parseConfig() (*handoff.Config, bool) {
+// and returns a populated Config struct, output file path, force flag, and dry run flag.
+func parseConfig() (*handoff.Config, string, bool, bool) {
 	config := handoff.NewConfig()
 	
 	// Define flags
 	var dryRun bool
+	var outputFile string
+	var force bool
 	flag.BoolVar(&config.Verbose, "verbose", false, "Enable verbose output")
 	flag.BoolVar(&dryRun, "dry-run", false, "Preview what would be copied without actually copying")
 	flag.StringVar(&config.Include, "include", "", "Comma-separated list of file extensions to include (e.g., .txt,.go)")
@@ -30,7 +32,7 @@ func parseConfig() (*handoff.Config, bool) {
 	// Process config (converts include/exclude strings to slices)
 	config.ProcessConfig()
 	
-	return config, dryRun
+	return config, outputFile, force, dryRun
 }
 
 // copyToClipboard copies text to the system clipboard with enhanced error reporting.
@@ -82,7 +84,7 @@ func copyToClipboard(text string) error {
 
 func main() {
 	// Parse command-line flags and get configuration
-	config, dryRun := parseConfig()
+	config, outputFile, force, dryRun := parseConfig()
 	logger := handoff.NewLogger(config.Verbose)
 
 	// Check if we have any paths to process
