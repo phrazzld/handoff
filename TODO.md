@@ -7,7 +7,7 @@
   - **Depends On:** None
   - **AC Ref:** Task 2 "Update Flag Parsing"
 
-- [ ] **Add -output command line flag**
+- [x] **Add -output command line flag**
   - **Action:** Define a new string flag `-output` in the flags section of parseConfig function that will accept a file path as input.
   - **Depends On:** "Update parseConfig function signature and return values"
   - **AC Ref:** Task 1 "Add `-output` Flag"
