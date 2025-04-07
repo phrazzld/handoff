@@ -67,7 +67,7 @@
   - **Depends On:** "Add file output handling logic in main function"
   - **AC Ref:** Task 7 "Add/Update Tests", Testing Strategy "Integration/CLI Tests"
 
-- [ ] **Add test for file overwriting protection**
+- [x] **Add test for file overwriting protection**
   - **Action:** Create test to verify existing files are NOT overwritten when -output points to an existing file and -force is not specified. Also verify files ARE overwritten when -force is specified.
   - **Depends On:** "Add integration test for file creation"
   - **AC Ref:** Task 7 "Add/Update Tests", Testing Strategy "Integration/CLI Tests", Updated requirement for file overwrite protection
