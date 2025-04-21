@@ -115,7 +115,7 @@
         1. Core library helper functions have adequate unit test coverage.
         2. Tests pass.
     - **Depends‑on:** [T011]
-- [ ] **T014 · Test · P1: add integration tests for lib.ProcessProject**
+- [x] **T014 · Test · P1: add integration tests for lib.ProcessProject**
     - **Context:** PLAN.md § 2.C.1, § 3
     - **Action:**
         1. Write integration tests for `lib.ProcessProject` in `lib/handoff_test.go`.

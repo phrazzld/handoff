@@ -693,3 +693,294 @@ func TestWriteToFile(t *testing.T) {
 		}
 	})
 }
+
+// createTestDir creates a test directory structure with various file types for testing ProcessProject
+func createTestDir(t *testing.T) (string, map[string]string) {
+	// Create a temporary directory for testing
+	tmpDir, err := os.MkdirTemp("", "handoff-process-test-")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+
+	// File contents to be used for verification
+	fileContents := make(map[string]string)
+
+	// Create a subdirectory
+	subDir := filepath.Join(tmpDir, "subdir")
+	if err := os.Mkdir(subDir, 0755); err != nil {
+		t.Fatalf("Failed to create subdirectory: %v", err)
+	}
+
+	// Create various file types
+	files := []struct {
+		path     string
+		content  string
+		fileType string
+	}{
+		{filepath.Join(tmpDir, "readme.md"), "# Markdown File\n\nThis is a test markdown file.", "markdown"},
+		{filepath.Join(tmpDir, "config.json"), `{"name": "test", "version": "1.0.0"}`, "json"},
+		{filepath.Join(tmpDir, "script.go"), "package main\n\nfunc main() {\n\tfmt.Println(\"Hello, world!\")\n}\n", "go"},
+		{filepath.Join(tmpDir, "notes.txt"), "Simple text file with some content.", "text"},
+		{filepath.Join(tmpDir, ".hidden"), "This is a hidden file that should be ignored.", "hidden"},
+		{filepath.Join(tmpDir, "package-lock.json"), `{"name": "test-pkg-lock", "lockfileVersion": 1}`, "package-lock"},
+		{filepath.Join(subDir, "nested.md"), "# Nested Markdown\n\nThis is in a subdirectory.", "nested-md"},
+		{filepath.Join(subDir, "nested.go"), "package sub\n\nfunc Sub() string {\n\treturn \"sub\"\n}\n", "nested-go"},
+		{filepath.Join(subDir, ".hidden-nested"), "This is a hidden nested file.", "hidden-nested"},
+	}
+
+	// Create each file and store its content for verification
+	for _, file := range files {
+		if err := os.WriteFile(file.path, []byte(file.content), 0644); err != nil {
+			t.Fatalf("Failed to create test file %s: %v", file.path, err)
+		}
+		fileContents[file.path] = file.content
+	}
+
+	// Create a binary file
+	binaryFile := filepath.Join(tmpDir, "binary.bin")
+	binaryContent := []byte{0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE, 0xFD}
+	if err := os.WriteFile(binaryFile, binaryContent, 0644); err != nil {
+		t.Fatalf("Failed to create binary file: %v", err)
+	}
+	// We don't add binary file to fileContents as it should be skipped
+
+	return tmpDir, fileContents
+}
+
+// TestProcessProject tests the ProcessProject function with various configurations
+func TestProcessProject(t *testing.T) {
+	tmpDir, _ := createTestDir(t)
+	defer func() {
+		if cleanErr := os.RemoveAll(tmpDir); cleanErr != nil {
+			t.Logf("Failed to clean up test directory: %v", cleanErr)
+		}
+	}()
+
+	tests := []struct {
+		name            string
+		paths           []string
+		config          *Config
+		wantErr         bool
+		wantFilesCount  int  // Expected number of processed files
+		wantEmpty       bool // Whether output should be empty (except for context tags)
+		wantContains    []string
+		wantNotContains []string
+	}{
+		{
+			name:            "Default config",
+			paths:           []string{tmpDir},
+			config:          NewConfig(),
+			wantErr:         false,
+			wantFilesCount:  6, // All visible non-binary files (not .hidden or binary.bin)
+			wantEmpty:       false,
+			wantContains:    []string{"readme.md", "config.json", "script.go", "notes.txt", "nested.md", "nested.go"},
+			wantNotContains: []string{".hidden", "binary.bin", ".hidden-nested"},
+		},
+		{
+			name:  "Include only markdown files",
+			paths: []string{tmpDir},
+			config: &Config{
+				Include: ".md",
+				Format:  "<{path}>\n```\n{content}\n```\n</{path}>\n\n",
+			},
+			wantErr:         false,
+			wantFilesCount:  2, // Only the two .md files
+			wantContains:    []string{"readme.md", "nested.md"},
+			wantNotContains: []string{"script.go", "config.json", "notes.txt"},
+		},
+		{
+			name:  "Include multiple extensions",
+			paths: []string{tmpDir},
+			config: &Config{
+				Include: ".md,.go",
+				Format:  "<{path}>\n```\n{content}\n```\n</{path}>\n\n",
+			},
+			wantErr:         false,
+			wantFilesCount:  4, // The two .md and two .go files
+			wantContains:    []string{"readme.md", "nested.md", "script.go", "nested.go"},
+			wantNotContains: []string{"config.json", "notes.txt"},
+		},
+		{
+			name:  "Exclude extensions",
+			paths: []string{tmpDir},
+			config: &Config{
+				Exclude: ".json",
+				Format:  "<{path}>\n```\n{content}\n```\n</{path}>\n\n",
+			},
+			wantErr:         false,
+			wantFilesCount:  4, // All visible non-binary, non-json files
+			wantContains:    []string{"readme.md", "nested.md", "script.go", "nested.go", "notes.txt"},
+			wantNotContains: []string{"config.json", "package-lock.json"},
+		},
+		{
+			name:  "Exclude specific filename",
+			paths: []string{tmpDir},
+			config: &Config{
+				ExcludeNamesStr: "package-lock.json",
+				Format:          "<{path}>\n```\n{content}\n```\n</{path}>\n\n",
+			},
+			wantErr:         false,
+			wantFilesCount:  6, // All visible non-binary files except package-lock.json
+			wantContains:    []string{"readme.md", "config.json", "script.go", "notes.txt"},
+			wantNotContains: []string{"package-lock.json"},
+		},
+		{
+			name:  "Custom format",
+			paths: []string{tmpDir},
+			config: &Config{
+				Include: ".md",
+				Format:  "FILE: {path}\n---\n{content}\n---\n\n",
+			},
+			wantErr:         false,
+			wantFilesCount:  2,
+			wantContains:    []string{"FILE:", "---"},
+			wantNotContains: []string{"```"},
+		},
+		{
+			name:           "No paths",
+			paths:          []string{},
+			config:         NewConfig(),
+			wantErr:        true,
+			wantFilesCount: 0,
+			wantEmpty:      true,
+		},
+		{
+			name:           "Non-existent path",
+			paths:          []string{filepath.Join(tmpDir, "non-existent")},
+			config:         NewConfig(),
+			wantErr:        false, // Should not error out, just return empty content
+			wantFilesCount: 0,
+			wantEmpty:      false, // Will still have context tags
+		},
+		{
+			name:            "Specific file path",
+			paths:           []string{filepath.Join(tmpDir, "readme.md")},
+			config:          NewConfig(),
+			wantErr:         false,
+			wantFilesCount:  1,
+			wantContains:    []string{"readme.md"},
+			wantNotContains: []string{"script.go", "nested.md"},
+		},
+		{
+			name:            "Multiple specific files",
+			paths:           []string{filepath.Join(tmpDir, "readme.md"), filepath.Join(tmpDir, "script.go")},
+			config:          NewConfig(),
+			wantErr:         false,
+			wantFilesCount:  2,
+			wantContains:    []string{"readme.md", "script.go"},
+			wantNotContains: []string{"nested.md", "config.json"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Process config if it's not the default (which would be nil)
+			if tt.config != nil {
+				tt.config.ProcessConfig()
+			}
+
+			// Call ProcessProject
+			content, err := ProcessProject(tt.paths, tt.config)
+
+			// Check error
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ProcessProject() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.wantErr {
+				// If we expect an error, we don't need to check the content
+				return
+			}
+
+			// Check if content is as expected
+			if tt.wantEmpty {
+				if content != "<context>\n</context>" {
+					t.Errorf("ProcessProject() content should be empty, got: %s", content)
+				}
+				return
+			}
+
+			// Verify content contains expected files
+			for _, expected := range tt.wantContains {
+				if !strings.Contains(content, expected) {
+					t.Errorf("ProcessProject() content should contain %q, but doesn't", expected)
+				}
+			}
+
+			// Verify content does not contain unwanted files
+			for _, unexpected := range tt.wantNotContains {
+				if strings.Contains(content, unexpected) {
+					t.Errorf("ProcessProject() content should not contain %q, but does", unexpected)
+				}
+			}
+
+			// For custom format test case, check specific format elements
+			if tt.name == "Custom format" {
+				// Check if the format string contains expected elements
+				if !strings.Contains(content, "FILE:") {
+					t.Errorf("ProcessProject() with custom format should contain 'FILE:' prefix")
+				}
+				if !strings.Contains(content, "---") {
+					t.Errorf("ProcessProject() with custom format should contain '---' separator")
+				}
+			}
+		})
+	}
+}
+
+// TestProcessProjectWithVerbose tests the verbose output mode of ProcessProject
+func TestProcessProjectWithVerbose(t *testing.T) {
+	tmpDir, _ := createTestDir(t)
+	defer func() {
+		if cleanErr := os.RemoveAll(tmpDir); cleanErr != nil {
+			t.Logf("Failed to clean up test directory: %v", cleanErr)
+		}
+	}()
+
+	// Create a Config with Verbose enabled
+	config := NewConfig()
+	config.Verbose = true
+
+	// Capture stderr output
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+
+	// Run ProcessProject
+	content, err := ProcessProject([]string{tmpDir}, config)
+	if err != nil {
+		t.Fatalf("ProcessProject failed: %v", err)
+	}
+
+	// Close the pipe writer and restore stderr
+	if err := w.Close(); err != nil {
+		t.Errorf("Failed to close writer: %v", err)
+	}
+	os.Stderr = oldStderr
+
+	// Read the captured output
+	var buf bytes.Buffer
+	_, _ = io.Copy(&buf, r)
+	output := buf.String()
+
+	// Check for verbose output
+	verbosePatterns := []string{
+		"Handoff complete",
+		"Files:",
+		"Lines:",
+		"Characters:",
+		"Estimated tokens:",
+	}
+
+	for _, pattern := range verbosePatterns {
+		if !strings.Contains(output, pattern) {
+			t.Errorf("Verbose output should contain %q, but doesn't", pattern)
+		}
+	}
+
+	// Verify the content is not empty
+	if content == "" {
+		t.Error("ProcessProject() returned empty content")
+	}
+}
