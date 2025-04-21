@@ -54,7 +54,7 @@
     - **Done‑when:**
         1. `parseConfig` returns a `*lib.Config` instance based on CLI flags.
     - **Depends‑on:** [T003]
-- [ ] **T007 · Refactor · P1: update main.go to use lib.ProcessProject for core logic**
+- [x] **T007 · Refactor · P1: update main.go to use lib.ProcessProject for core logic**
     - **Context:** PLAN.md § 2.B.1
     - **Action:**
         1. Import the `lib` package in `main.go`.
