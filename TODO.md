@@ -175,7 +175,7 @@
     - **Done‑when:**
         1. `lib/README.md` exists and provides clear instructions for library users.
     - **Depends‑on:** [T004, T005]
-- [ ] **T020 · Chore · P2: update examples/gemini_planner.go to use library api**
+- [x] **T020 · Chore · P2: update examples/gemini_planner.go to use library api**
     - **Context:** PLAN.md § 2.D.2
     - **Action:**
         1. Review the existing `examples/gemini_planner.go`.

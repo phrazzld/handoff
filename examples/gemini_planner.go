@@ -1,11 +1,20 @@
 // Example program demonstrating how to use the handoff library
-// This program grabs a project's code and sends it to Gemini to generate a PLAN.md
+//
+// This program demonstrates integrating Handoff with AI models by:
+// 1. Collecting code from a project using the handoff library
+// 2. Creating a prompt that includes the code context
+// 3. Sending the prompt to Gemini (simulated in this example)
+// 4. Writing the response to a PLAN.md file
+//
+// Usage:
+//
+//	go run gemini_planner.go --project ./my-project --prompt "Add user authentication" --output PLAN.md
+//	go run gemini_planner.go --project ./my-project --prompt-file my-prompt.txt --verbose
 package main
 
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -34,7 +43,7 @@ func main() {
 	// Load prompt from file if specified
 	finalPrompt := *userPrompt
 	if *promptFile != "" {
-		content, err := ioutil.ReadFile(*promptFile)
+		content, err := os.ReadFile(*promptFile)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading prompt file: %v\n", err)
 			os.Exit(1)
@@ -42,17 +51,35 @@ func main() {
 		finalPrompt = string(content)
 	}
 
-	// Configure handoff
+	// Configure handoff library
+	// Create a new configuration with default settings
 	config := handoff.NewConfig()
+	
+	// Apply command-line options
 	config.Verbose = *verbose
-	config.Exclude = *exclude
-	config.ExcludeNamesStr = *excludeNames
+	config.Exclude = *exclude          // Extensions to exclude (e.g., ".exe,.bin")
+	config.ExcludeNamesStr = *excludeNames  // Files/dirs to exclude (e.g., "node_modules")
+	
+	// Very important: process the configuration strings into slices
+	// This must be called after setting string-based config options
+	config.ProcessConfig()
 
-	// Process project files
+	// Process project files using the library
+	// This will collect all the files that match our filter criteria
+	// and format them according to the configuration
 	content, err := handoff.ProcessProject([]string{*projectPath}, config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error processing project: %v\n", err)
 		os.Exit(1)
+	}
+	
+	// Get statistics about the content (useful for LLM context limits)
+	chars, lines, tokens := handoff.CalculateStatistics(content)
+	if *verbose {
+		fmt.Printf("Content statistics:\n")
+		fmt.Printf("- Characters: %d\n", chars)
+		fmt.Printf("- Lines: %d\n", lines)
+		fmt.Printf("- Estimated tokens: %d\n", tokens)
 	}
 
 	// Create the final prompt for Gemini
@@ -85,12 +112,15 @@ Format your response as a markdown document that I can use as my implementation 
 	// For demonstration, we'll just create a placeholder response
 	geminiResponse := "# Technical Plan\n\n*This would be the response from Gemini with a detailed plan.*"
 
-	// Write the response to the output file
+	// Determine the output file path
 	outputPath := *outputFile
 	if !filepath.IsAbs(outputPath) {
+		// If a relative path is provided, make it relative to the project directory
 		outputPath = filepath.Join(*projectPath, outputPath)
 	}
 
+	// Use the library's WriteToFile function to write the response
+	// This function handles directory creation and error checking
 	if err := handoff.WriteToFile(geminiResponse, outputPath); err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing plan to file: %v\n", err)
 		os.Exit(1)
