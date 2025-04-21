@@ -90,7 +90,7 @@
     - **Depends‑on:** [T002, T007, T008, T009, T012]
 
 ## Testing (lib & main)
-- [ ] **T011 · Test · P1: create lib/handoff_test.go**
+- [x] **T011 · Test · P1: create lib/handoff_test.go**
     - **Context:** PLAN.md § 2.C.1
     - **Action:**
         1. Create the test file `lib/handoff_test.go`.
