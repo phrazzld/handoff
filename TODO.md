@@ -87,7 +87,7 @@
     - **Done‑when:**
         1. `files.go` and `output.go` are removed from the project root/main package.
         2. The project compiles and runs without them.
-    - **Depends‑on:** [T002, T007, T008, T009]
+    - **Depends‑on:** [T002, T007, T008, T009, T012]
 
 ## Testing (lib & main)
 - [ ] **T011 · Test · P1: create lib/handoff_test.go**
