@@ -195,7 +195,7 @@
     - **Depends‑on:** [T003]
 
 ## Go Modules & Versioning
-- [ ] **T022 · Chore · P2: verify go.mod module path**
+- [x] **T022 · Chore · P2: verify go.mod module path**
     - **Context:** PLAN.md § 2.E.1
     - **Action:**
         1. Ensure the `module` directive in `go.mod` is set correctly to `github.com/phrazzld/handoff`.
