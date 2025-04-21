@@ -184,7 +184,7 @@
         1. `examples/gemini_planner.go` correctly demonstrates usage of the refactored library.
         2. The example compiles and runs.
     - **Depends‑on:** [T003]
-- [ ] **T021 · Chore · P2: add simple library usage example**
+- [x] **T021 · Chore · P2: add simple library usage example**
     - **Context:** PLAN.md § 2.D.2
     - **Action:**
         1. Create a new, minimal example file (e.g., `examples/simple_usage.go`).
