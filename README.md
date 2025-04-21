@@ -1,25 +1,43 @@
 # Handoff
 
-A tool to collect and format code from multiple files for sharing with AI assistants or other programs.
+Handoff is both a command-line tool and a Go library for collecting and formatting code from multiple files. It's designed to make it easy to share code with AI assistants, documentation generators, or other tools that work with source code.
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+  - [As a CLI Tool](#as-a-cli-tool)
+  - [As a Library](#as-a-library)
+- [Usage](#usage)
+  - [Command Line](#command-line)
+  - [Library Usage](#library-usage)
+- [Output Format](#output-format)
+- [Output Statistics](#output-statistics)
+- [Git Integration](#git-integration)
+- [Examples](#examples)
+- [Development and Contributing](#development-and-contributing)
+- [License](#license)
 
 ## Features
 
-- Collects files from specified paths (files or directories)
-- Formats file contents with customizable templates
-- Copies aggregated content to clipboard or writes to file
-- Can be used as a library in other Go programs
-- Provides content statistics (files, lines, characters, tokens)
-- Supports git-aware file collection
-- Filters files by extension or name
-- Detects and skips binary files
-- Includes file overwrite protection
+- **Dual Interface**: Use as a command-line tool or import as a Go library
+- **Flexible File Collection**: Process individual files or entire directories
+- **Smart Filtering**: Include/exclude files by extension or name
+- **Git-Aware**: Respects .gitignore rules to skip irrelevant files
+- **Format Customization**: Customize output with templates
+- **Multiple Output Options**: Copy to clipboard or write to file
+- **Content Statistics**: Get detailed stats about processed content
+- **Binary Detection**: Automatically skips binary files
+- **Safety Features**: File overwrite protection
 
 ## Installation
 
 ### Prerequisites
 - Go 1.16 or higher
 
-### Building from Source
+### As a CLI Tool
+
+#### Building from Source
 ```bash
 # Clone the repository
 git clone https://github.com/phrazzld/handoff.git
@@ -30,6 +48,16 @@ go build
 
 # Optionally, install it to your GOPATH
 go install
+```
+
+### As a Library
+
+```bash
+# Add to your Go project
+go get github.com/phrazzld/handoff/lib
+
+# Import in your code
+import "github.com/phrazzld/handoff/lib"
 ```
 
 ## Usage
@@ -76,33 +104,48 @@ go install
 ./handoff -output=HANDOFF.md -dry-run .
 ```
 
-### As a Library
+## Library Usage
 
-Handoff can also be used as a library in other Go programs:
+Handoff's core functionality is available as a library for integration with your Go applications:
 
 ```go
-import "github.com/phrazzld/handoff/lib"
+package main
 
-// Create configuration
-config := handoff.NewConfig()
-config.Verbose = true
-config.Exclude = ".exe,.bin,.jpg,.png"
-config.ProcessConfig()
+import (
+	"fmt"
+	"github.com/phrazzld/handoff/lib"
+)
 
-// Process project files
-content, err := handoff.ProcessProject([]string{"./my-project"}, config)
-if err != nil {
-    panic(err)
+func main() {
+	// Create a configuration
+	config := lib.NewConfig()
+	config.Verbose = true
+	config.Exclude = ".exe,.bin,.jpg,.png"
+	config.ExcludeNamesStr = "node_modules,package-lock.json"
+	config.ProcessConfig() // Process string settings into slices
+
+	// Process project files
+	content, err := lib.ProcessProject([]string{"./my-project"}, config)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
+	// Use the content
+	fmt.Println("Character count:", len(content))
+	
+	// Write to a file
+	if err := lib.WriteToFile(content, "output.md"); err != nil {
+		fmt.Printf("Error writing to file: %v\n", err)
+	}
+	
+	// Get statistics
+	chars, lines, tokens := lib.CalculateStatistics(content)
+	fmt.Printf("Stats: %d chars, %d lines, ~%d tokens\n", chars, lines, tokens)
 }
-
-// Use the formatted content
-fmt.Println(content)
-
-// Or write to a file
-handoff.WriteToFile(content, "output.txt")
 ```
 
-Check the `examples` directory for more detailed examples.
+For more details on the library API, see the [lib/README.md](lib/README.md) documentation and check the `examples` directory for complete examples.
 
 ### Output Format
 
@@ -166,15 +209,46 @@ When processing directories, Handoff respects `.gitignore` rules:
 
 ## Examples
 
+The examples directory contains practical implementations using the Handoff library:
+
 ### Gemini Planner
 
-The `examples/gemini_planner.go` demonstrates how to use Handoff to extract code from a project and send it to Gemini to generate a technical plan.
+The `examples/gemini_planner.go` demonstrates integrating Handoff with Google's Gemini API to generate technical plans from your codebase.
 
 ```bash
 go run examples/gemini_planner.go --project ./my-project --prompt "Add authentication to the application" --output PLAN.md
 ```
 
-## Contributing
+### Simple Usage Example
+
+For a minimal example of using the library, see `examples/simple_usage.go` (coming soon).
+
+```bash
+go run examples/simple_usage.go --dir ./my-project --output output.md
+```
+
+## Development and Contributing
+
+### Project Structure
+
+- **`/lib`**: The library package (importable as `github.com/phrazzld/handoff/lib`)
+- **`/examples`**: Example programs using the library
+- **Root directory**: CLI tool implementation
+
+### Testing
+
+```bash
+# Run all tests
+go test ./...
+
+# Run library tests with coverage
+go test -coverprofile=coverage.out ./lib/...
+go tool cover -func=coverage.out
+```
+
+The library package maintains a minimum test coverage threshold of 85%, enforced via GitHub Actions.
+
+### Contributions
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 

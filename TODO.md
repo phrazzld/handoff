@@ -157,7 +157,7 @@
     - **Depends‑on:** [T012, T013, T014]
 
 ## Documentation & Examples
-- [ ] **T018 · Chore · P2: update main README.md for library/cli structure**
+- [x] **T018 · Chore · P2: update main README.md for library/cli structure**
     - **Context:** PLAN.md § 2.D.1
     - **Action:**
         1. Revise the main `README.md`.
