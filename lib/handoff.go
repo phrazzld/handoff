@@ -107,8 +107,8 @@ func (c *Config) ProcessConfig() {
 	}
 }
 
-// IsGitIgnored checks if a file is gitignored or hidden.
-func IsGitIgnored(file string) bool {
+// isGitIgnored checks if a file is gitignored or hidden (internal helper).
+func isGitIgnored(file string) bool {
 	if !GitAvailable {
 		return strings.HasPrefix(filepath.Base(file), ".")
 	}
@@ -128,8 +128,8 @@ func IsGitIgnored(file string) bool {
 	return strings.HasPrefix(filename, ".")
 }
 
-// GetGitFiles retrieves files from a directory using Git's ls-files command
-func GetGitFiles(dir string) ([]string, error) {
+// getGitFiles retrieves files from a directory using Git's ls-files command (internal helper)
+func getGitFiles(dir string) ([]string, error) {
 	if !GitAvailable {
 		return nil, fmt.Errorf("git not available")
 	}
@@ -157,8 +157,8 @@ func GetGitFiles(dir string) ([]string, error) {
 	return files, nil
 }
 
-// GetFilesWithFilepathWalk retrieves files from a directory by walking the filesystem
-func GetFilesWithFilepathWalk(dir string) ([]string, error) {
+// getFilesWithFilepathWalk retrieves files from a directory by walking the filesystem (internal helper)
+func getFilesWithFilepathWalk(dir string) ([]string, error) {
 	var files []string
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -178,12 +178,12 @@ func GetFilesWithFilepathWalk(dir string) ([]string, error) {
 	return files, err
 }
 
-// GetFilesFromDir retrieves all files to process from a directory.
+// getFilesFromDir retrieves all files to process from a directory.
 // It tries to use Git first and falls back to filepath.Walk if Git is not available
-// or the directory is not a Git repository.
-func GetFilesFromDir(dir string) ([]string, error) {
+// or the directory is not a Git repository. (internal helper)
+func getFilesFromDir(dir string) ([]string, error) {
 	if GitAvailable {
-		files, err := GetGitFiles(dir)
+		files, err := getGitFiles(dir)
 		if err == nil {
 			return files, nil
 		}
@@ -195,7 +195,7 @@ func GetFilesFromDir(dir string) ([]string, error) {
 	}
 
 	// Fallback to walking the directory, excluding hidden files and dirs
-	return GetFilesWithFilepathWalk(dir)
+	return getFilesWithFilepathWalk(dir)
 }
 
 // Constants for binary file detection
@@ -204,8 +204,8 @@ const (
 	binaryNonPrintableThreshold = 0.3 // Threshold ratio of non-printable chars to consider a file binary
 )
 
-// IsBinaryFile checks if a file is likely to be binary based on its content.
-func IsBinaryFile(content []byte) bool {
+// isBinaryFile checks if a file is likely to be binary based on its content (internal helper).
+func isBinaryFile(content []byte) bool {
 	// Check for null bytes, which are common in binary files
 	if len(content) > 0 && bytes.IndexByte(content, 0) != -1 {
 		return true
@@ -225,12 +225,12 @@ func IsBinaryFile(content []byte) bool {
 	return float64(nonPrintable) > float64(sampleSize)*binaryNonPrintableThreshold
 }
 
-// isWhitespace checks if a byte is a whitespace character
+// isWhitespace checks if a byte is a whitespace character (unexported, internal helper)
 func isWhitespace(b byte) bool {
 	return b == '\n' || b == '\r' || b == '\t' || b == ' '
 }
 
-// minInt returns the minimum of two integers
+// minInt returns the minimum of two integers (unexported, internal helper)
 func minInt(a, b int) int {
 	if a < b {
 		return a
@@ -238,8 +238,8 @@ func minInt(a, b int) int {
 	return b
 }
 
-// ShouldProcess decides if a file should be processed based on all filters
-func ShouldProcess(file string, config *Config) bool {
+// shouldProcess decides if a file should be processed based on all filters (internal helper)
+func shouldProcess(file string, config *Config) bool {
 	base := filepath.Base(file)
 	ext := strings.ToLower(filepath.Ext(file))
 
@@ -288,13 +288,13 @@ func ProcessFile(filePath string, logger *Logger, config *Config, processor Proc
 	}
 
 	// Check if file is gitignored
-	if IsGitIgnored(filePath) {
+	if isGitIgnored(filePath) {
 		logger.Verbose("skipping gitignored file: %s", filePath)
 		return ""
 	}
 
 	// Check if file should be processed based on filters
-	if !ShouldProcess(filePath, config) {
+	if !shouldProcess(filePath, config) {
 		if len(config.ExcludeNames) > 0 && slices.Contains(config.ExcludeNames, filepath.Base(filePath)) {
 			logger.Verbose("skipping file (in exclude-names list): %s", filePath)
 		}
@@ -309,7 +309,7 @@ func ProcessFile(filePath string, logger *Logger, config *Config, processor Proc
 	}
 
 	// Skip binary files
-	if IsBinaryFile(content) {
+	if isBinaryFile(content) {
 		logger.Verbose("skipping binary file: %s", filePath)
 		return ""
 	}
@@ -320,7 +320,7 @@ func ProcessFile(filePath string, logger *Logger, config *Config, processor Proc
 
 // ProcessDirectory processes all files in a directory with the given processor and config
 func ProcessDirectory(dirPath string, contentBuilder *strings.Builder, config *Config, logger *Logger, processor ProcessorFunc) {
-	files, err := GetFilesFromDir(dirPath)
+	files, err := getFilesFromDir(dirPath)
 	if err != nil {
 		logger.Error("processing directory %s: %v", dirPath, err)
 		return
@@ -366,7 +366,7 @@ func ProcessPaths(paths []string, config *Config, logger *Logger) (string, int, 
 		if info, err := os.Stat(path); err == nil && !info.IsDir() {
 			totalFiles++
 		} else if err == nil && info.IsDir() {
-			if files, err := GetFilesFromDir(path); err == nil {
+			if files, err := getFilesFromDir(path); err == nil {
 				totalFiles += len(files)
 			}
 		}
@@ -395,8 +395,8 @@ func WrapInContext(content string) string {
 	return "<context>\n" + content + "</context>"
 }
 
-// EstimateTokenCount counts tokens by tracking transitions between whitespace and non-whitespace characters
-func EstimateTokenCount(text string) int {
+// estimateTokenCount counts tokens by tracking transitions between whitespace and non-whitespace characters (internal helper)
+func estimateTokenCount(text string) int {
 	count := 0
 	inToken := false
 	for _, r := range text {
@@ -419,7 +419,7 @@ func EstimateTokenCount(text string) int {
 func CalculateStatistics(content string) (charCount, lineCount, tokenCount int) {
 	charCount = len(content)
 	lineCount = strings.Count(content, "\n") + 1
-	tokenCount = EstimateTokenCount(content)
+	tokenCount = estimateTokenCount(content)
 	return charCount, lineCount, tokenCount
 }
 

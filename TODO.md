@@ -18,7 +18,7 @@
         1. Core file processing and formatting logic resides entirely within the `lib` package.
         2. Code compiles successfully.
     - **Depends‑on:** [T001]
-- [ ] **T003 · Refactor · P1: refine exported vs unexported identifiers in lib package**
+- [x] **T003 · Refactor · P1: refine exported vs unexported identifiers in lib package**
     - **Context:** PLAN.md § 2.A.2, § 5
     - **Action:**
         1. Review all functions, types, constants, and variables in the `lib` package.
