@@ -1,3 +1,4 @@
 # BACKLOG
 
-- support writing to HANDOFF.md file (as an alternative to current default behavior, copying to clipboard)
+- turn into a proper package that other programs can use
+

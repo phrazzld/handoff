@@ -33,4 +33,7 @@ go.work
 ehthumbs.db
 Thumbs.db
 
+# Project specific
 CONTEXT.md
+architect_output/
+docs/
