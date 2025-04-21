@@ -28,7 +28,7 @@
         1. The public API surface of the `lib` package is intentionally defined and minimized.
         2. Unnecessary identifiers are unexported.
     - **Depends‑on:** [T002]
-- [ ] **T004 · Chore · P2: add/update godoc comments for exported lib identifiers**
+- [x] **T004 · Chore · P2: add/update godoc comments for exported lib identifiers**
     - **Context:** PLAN.md § 2.A.2, § 2.D.1
     - **Action:**
         1. Write clear, concise GoDoc comments for all exported functions, types, constants, and variables in the `lib` package.

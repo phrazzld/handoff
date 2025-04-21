@@ -1,4 +1,22 @@
-// Package handoff provides functionality for collecting and formatting file contents.
+// Package handoff provides functionality for collecting and formatting file contents 
+// from multiple files and directories for sharing with AI assistants or other applications.
+// 
+// The package supports file filtering by extension or name, respects Git's ignore rules,
+// detects and skips binary files, and provides customizable output formatting.
+//
+// Basic usage:
+//
+//	config := handoff.NewConfig()
+//	config.Include = ".go,.md"  // Only include Go and Markdown files
+//	config.ProcessConfig()      // Process string-based config into slice-based filters
+//	
+//	content, err := handoff.ProcessProject([]string{"./src", "README.md"}, config)
+//	if err != nil {
+//	    // Handle error
+//	}
+//	
+//	// Use the formatted content or write it to a file
+//	handoff.WriteToFile(content, "output.md")
 package handoff
 
 import (
@@ -12,19 +30,38 @@ import (
 	"unicode"
 )
 
-// Config holds application configuration settings
+// Config holds all configuration options for file processing and output formatting.
+// Users should create a Config with NewConfig() and set the desired options before
+// calling ProcessConfig() to prepare the configuration for use.
 type Config struct {
-	Verbose         bool
-	Include         string
-	Exclude         string
+	// Verbose enables detailed logging output
+	Verbose bool
+
+	// Include is a comma-separated list of file extensions to include (e.g., ".go,.md")
+	Include string
+
+	// Exclude is a comma-separated list of file extensions to exclude (e.g., ".exe,.bin")
+	Exclude string
+
+	// ExcludeNamesStr is a comma-separated list of filenames to exclude (e.g., "package-lock.json,yarn.lock")
 	ExcludeNamesStr string
-	Format          string
-	IncludeExts     []string
-	ExcludeExts     []string
-	ExcludeNames    []string
+
+	// Format is a template string for formatting output, using {path} and {content} placeholders
+	Format string
+
+	// IncludeExts contains the processed list of file extensions to include (populated by ProcessConfig)
+	IncludeExts []string
+
+	// ExcludeExts contains the processed list of file extensions to exclude (populated by ProcessConfig) 
+	ExcludeExts []string
+
+	// ExcludeNames contains the processed list of filenames to exclude (populated by ProcessConfig)
+	ExcludeNames []string
 }
 
 // NewConfig creates a new Config with default values.
+// By default, Verbose is false and Format uses a sensible default format
+// with file path headers and code fences.
 func NewConfig() *Config {
 	return &Config{
 		Verbose: false,
@@ -32,37 +69,46 @@ func NewConfig() *Config {
 	}
 }
 
-// ProcessorFunc is a function type that processes a file's content and returns formatted output
+// ProcessorFunc is a function type that processes a file's content and returns formatted output.
+// It receives the file path and raw content and should return the processed content as a string.
+// This type is used for custom file processing in functions like ProcessFile and ProcessPathWithProcessor.
 type ProcessorFunc func(filePath string, content []byte) string
 
-// Logger provides a simple logging interface with different log levels
+// Logger provides a simple logging interface with different log levels.
+// All messages are sent to stderr with appropriate prefixes for their level.
 type Logger struct {
+	// verbose determines whether Verbose-level messages are displayed
 	verbose bool
 }
 
-// NewLogger creates a new Logger instance
+// NewLogger creates a new Logger instance with the specified verbosity setting.
+// When verbose is false, calls to the Verbose method will be suppressed.
 func NewLogger(verbose bool) *Logger {
 	return &Logger{
 		verbose: verbose,
 	}
 }
 
-// Info logs an informational message to stderr
+// Info logs an informational message to stderr.
+// These messages are always displayed regardless of the verbose setting.
 func (l *Logger) Info(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
 }
 
-// Warn logs a warning message to stderr
+// Warn logs a warning message to stderr.
+// Warning messages are prefixed with "warning: " and are always displayed.
 func (l *Logger) Warn(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, "warning: "+format+"\n", args...)
 }
 
-// Error logs an error message to stderr
+// Error logs an error message to stderr.
+// Error messages are prefixed with "error: " and are always displayed.
 func (l *Logger) Error(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, "error: "+format+"\n", args...)
 }
 
-// Verbose logs a message to stderr only if verbose mode is enabled
+// Verbose logs a message to stderr only if verbose mode is enabled.
+// These messages are useful for detailed progress information.
 func (l *Logger) Verbose(format string, args ...interface{}) {
 	if l.verbose {
 		fmt.Fprintf(os.Stderr, format+"\n", args...)
@@ -70,6 +116,8 @@ func (l *Logger) Verbose(format string, args ...interface{}) {
 }
 
 // GitAvailable indicates whether the git command is available on the system.
+// This variable is set during package initialization and can be used
+// to determine if Git functionality (like respecting .gitignore rules) can be used.
 var GitAvailable bool
 
 func init() {
@@ -77,7 +125,12 @@ func init() {
 	GitAvailable = err == nil
 }
 
-// ProcessConfig processes the Include/Exclude strings in the Config and populates the extension slices
+// ProcessConfig processes the string-based Include, Exclude, and ExcludeNamesStr fields 
+// in the Config struct and populates the corresponding slice fields (IncludeExts, ExcludeExts, ExcludeNames).
+//
+// This method should be called after setting the string fields and before using the Config
+// with ProcessProject or other processing functions. It ensures file extensions start with a dot
+// and normalizes strings by trimming spaces.
 func (c *Config) ProcessConfig() {
 	// Process include/exclude extensions
 	if c.Include != "" {
@@ -274,7 +327,20 @@ func shouldProcess(file string, config *Config) bool {
 	return true
 }
 
-// ProcessFile processes a single file with the given processor and config
+// ProcessFile processes a single file with the given processor function and configuration.
+// It applies various filters (gitignore, extension/name filters, binary detection) and
+// passes the valid file's content to the processor function to generate formatted output.
+//
+// If the file should be skipped (doesn't exist, is gitignored, doesn't match filters, 
+// or is binary), an empty string is returned and appropriate messages are logged.
+//
+// Parameters:
+//   - filePath: The path to the file to process
+//   - logger: Logger for status and error messages
+//   - config: Configuration options controlling filtering
+//   - processor: Function to process the file content
+//
+// Returns a formatted string for valid files or an empty string for skipped files.
 func ProcessFile(filePath string, logger *Logger, config *Config, processor ProcessorFunc) string {
 	// First check if file exists
 	if _, statErr := os.Stat(filePath); statErr != nil {
@@ -318,7 +384,17 @@ func ProcessFile(filePath string, logger *Logger, config *Config, processor Proc
 	return processor(filePath, content)
 }
 
-// ProcessDirectory processes all files in a directory with the given processor and config
+// ProcessDirectory processes all files in a directory with the given processor and config.
+// It discovers files in the directory (respecting Git's ignore rules if available),
+// filters them according to the provided configuration, and processes each valid file,
+// appending the formatted output to the contentBuilder.
+//
+// Parameters:
+//   - dirPath: The directory path to process
+//   - contentBuilder: Builder to append formatted content to
+//   - config: Configuration for file filtering and processing
+//   - logger: Logger for status and error messages
+//   - processor: Function to process each file's content
 func ProcessDirectory(dirPath string, contentBuilder *strings.Builder, config *Config, logger *Logger, processor ProcessorFunc) {
 	files, err := getFilesFromDir(dirPath)
 	if err != nil {
@@ -334,7 +410,17 @@ func ProcessDirectory(dirPath string, contentBuilder *strings.Builder, config *C
 	}
 }
 
-// ProcessPathWithProcessor processes a single path (file or directory) with a custom processor function and config
+// ProcessPathWithProcessor processes a single path (file or directory) with a custom processor function.
+// This is a unified entry point that handles both files and directories, dispatching to the
+// appropriate handler based on the path type. For directories, it processes all contained files
+// recursively. For files, it processes the file directly.
+//
+// Parameters:
+//   - path: Path to a file or directory
+//   - contentBuilder: Builder to append formatted content to
+//   - config: Configuration for file filtering and processing
+//   - logger: Logger for status and error messages
+//   - processor: Function to process each file's content
 func ProcessPathWithProcessor(path string, contentBuilder *strings.Builder, config *Config, logger *Logger, processor ProcessorFunc) {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -353,7 +439,19 @@ func ProcessPathWithProcessor(path string, contentBuilder *strings.Builder, conf
 	}
 }
 
-// ProcessPaths processes multiple paths and returns the number of processed files and total files
+// ProcessPaths processes multiple file or directory paths according to the configuration.
+// It creates a customized processor function that tracks progress and formats output
+// using the config's Format template, then processes each path with this processor.
+//
+// Parameters:
+//   - paths: List of file or directory paths to process
+//   - config: Configuration for file filtering and processing
+//   - logger: Logger for status and error messages
+//
+// Returns:
+//   - A string containing the combined formatted content
+//   - The number of files successfully processed
+//   - The total number of candidate files found (before filtering)
 func ProcessPaths(paths []string, config *Config, logger *Logger) (string, int, int) {
 	contentBuilder := &strings.Builder{}
 	processedFiles := 0
@@ -390,7 +488,15 @@ func ProcessPaths(paths []string, config *Config, logger *Logger) (string, int, 
 	return contentBuilder.String(), processedFiles, totalFiles
 }
 
-// WrapInContext wraps the content in a top-level context tag
+// WrapInContext wraps the content in top-level context tags.
+// This provides consistent formatting for the final output, making it easier
+// to identify the boundaries of the collected content.
+//
+// Parameter:
+//   - content: The raw content to wrap
+//
+// Returns:
+//   - The content wrapped with <context> tags
 func WrapInContext(content string) string {
 	return "<context>\n" + content + "</context>"
 }
@@ -415,7 +521,17 @@ func estimateTokenCount(text string) int {
 	return count
 }
 
-// CalculateStatistics calculates statistics about the content
+// CalculateStatistics calculates useful statistics about the content.
+// This function analyzes the provided content and returns counts of characters,
+// lines, and tokens (words or code-like tokens) it contains.
+//
+// Parameter:
+//   - content: The content to analyze
+//
+// Returns:
+//   - charCount: Total number of characters in the content
+//   - lineCount: Total number of lines in the content (based on newlines)
+//   - tokenCount: Estimated number of tokens/words in the content
 func CalculateStatistics(content string) (charCount, lineCount, tokenCount int) {
 	charCount = len(content)
 	lineCount = strings.Count(content, "\n") + 1
@@ -423,9 +539,21 @@ func CalculateStatistics(content string) (charCount, lineCount, tokenCount int) 
 	return charCount, lineCount, tokenCount
 }
 
-// ProcessProject collects all files from the given paths according to filters,
-// formats them, and returns the formatted content.
-// This is the main function to use when integrating with other applications.
+// ProcessProject collects and formats content from files in the specified paths.
+// This is the main entry point for the library and the primary function that external
+// applications should use. It handles all aspects of file collection, filtering, and
+// formatting according to the provided configuration.
+//
+// If config is nil, default configuration is used. The function automatically calls
+// ProcessConfig() on the configuration to ensure string-based filters are processed.
+//
+// Parameters:
+//   - paths: List of file or directory paths to process
+//   - config: Configuration for file filtering and processing (can be nil for defaults)
+//
+// Returns:
+//   - The formatted content wrapped in context tags
+//   - An error if no paths are provided or if processing fails
 func ProcessProject(paths []string, config *Config) (string, error) {
 	if config == nil {
 		config = NewConfig()
@@ -458,7 +586,16 @@ func ProcessProject(paths []string, config *Config) (string, error) {
 	return formattedContent, nil
 }
 
-// WriteToFile writes the content to a file
+// WriteToFile writes the content to a file at the specified path.
+// This is a convenience function for saving the output of ProcessProject
+// directly to a file. The file is created with 0644 permissions.
+//
+// Parameters:
+//   - content: The content to write to the file
+//   - filePath: The path where the file should be created
+//
+// Returns:
+//   - An error if the file cannot be written (e.g., due to permissions or path issues)
 func WriteToFile(content, filePath string) error {
 	return os.WriteFile(filePath, []byte(content), 0644)
 }
