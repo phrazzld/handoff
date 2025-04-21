@@ -12,7 +12,8 @@ import (
 )
 
 // parseConfig defines and parses command-line flags, processes include/exclude extensions,
-// and returns a populated Config struct, output file path, force flag, and dry run flag.
+// and returns a populated Config struct from the library package.
+// It also returns the CLI-specific options as separate values (output file path, force flag, and dry run flag).
 func parseConfig() (*handoff.Config, string, bool, bool) {
 	config := handoff.NewConfig()
 

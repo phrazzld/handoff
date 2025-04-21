@@ -37,7 +37,7 @@
         1. All exported identifiers in `lib` have comprehensive GoDoc comments.
         2. `go doc ./lib/...` shows complete documentation.
     - **Depends‑on:** [T003]
-- [ ] **T005 · Chore · P2: add package-level documentation for lib package**
+- [x] **T005 · Chore · P2: add package-level documentation for lib package**
     - **Context:** PLAN.md § 2.A.2
     - **Action:**
         1. Create or update `lib/doc.go` with package-level documentation explaining the library's purpose and usage overview.
@@ -46,7 +46,7 @@
     - **Depends‑on:** [T003]
 
 ## CLI Refactoring (main)
-- [ ] **T006 · Refactor · P1: modify main.parseConfig to return *lib.Config**
+- [x] **T006 · Refactor · P1: modify main.parseConfig to return *lib.Config**
     - **Context:** PLAN.md § 2.B.1
     - **Action:**
         1. Update the `parseConfig` function (or equivalent) in `main.go` to populate and return a `*lib.Config` struct.
