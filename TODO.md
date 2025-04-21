@@ -106,7 +106,7 @@
         1. Library-specific tests are moved to `lib/handoff_test.go`.
         2. Moved tests pass against the library code.
     - **Depends‑on:** [T011]
-- [ ] **T013 · Test · P1: add unit tests for new/existing lib helper functions**
+- [x] **T013 · Test · P1: add unit tests for new/existing lib helper functions**
     - **Context:** PLAN.md § 2.C.1, § 3
     - **Action:**
         1. Write unit tests for helper functions within `lib` (e.g., `NewConfig`, `Config.ProcessConfig`, `CalculateStatistics`, any internal helpers).

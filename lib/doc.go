@@ -3,7 +3,7 @@
 //
 // The library simplifies the process of gathering code and documentation from
 // multiple files and directories, filtering them by various criteria, and formatting
-// the content in a standardized way, making it ideal for creating comprehensive 
+// the content in a standardized way, making it ideal for creating comprehensive
 // context for AI assistants like Claude, ChatGPT, or Gemini.
 //
 // # Features

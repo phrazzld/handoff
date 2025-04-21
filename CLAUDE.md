@@ -34,3 +34,4 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Use conventional commit prefixes: `feat:`, `fix:`, `docs:`, `test:`, `chore:`
 - Make atomic, focused commits that implement one logical change
 - Update documentation as part of feature implementation
+- Do not sign your commit messages

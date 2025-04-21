@@ -1,6 +1,6 @@
-// Package handoff provides functionality for collecting and formatting file contents 
+// Package handoff provides functionality for collecting and formatting file contents
 // from multiple files and directories for sharing with AI assistants or other applications.
-// 
+//
 // The package supports file filtering by extension or name, respects Git's ignore rules,
 // detects and skips binary files, and provides customizable output formatting.
 //
@@ -9,12 +9,12 @@
 //	config := handoff.NewConfig()
 //	config.Include = ".go,.md"  // Only include Go and Markdown files
 //	config.ProcessConfig()      // Process string-based config into slice-based filters
-//	
+//
 //	content, err := handoff.ProcessProject([]string{"./src", "README.md"}, config)
 //	if err != nil {
 //	    // Handle error
 //	}
-//	
+//
 //	// Use the formatted content or write it to a file
 //	handoff.WriteToFile(content, "output.md")
 package handoff
@@ -52,7 +52,7 @@ type Config struct {
 	// IncludeExts contains the processed list of file extensions to include (populated by ProcessConfig)
 	IncludeExts []string
 
-	// ExcludeExts contains the processed list of file extensions to exclude (populated by ProcessConfig) 
+	// ExcludeExts contains the processed list of file extensions to exclude (populated by ProcessConfig)
 	ExcludeExts []string
 
 	// ExcludeNames contains the processed list of filenames to exclude (populated by ProcessConfig)
@@ -125,7 +125,7 @@ func init() {
 	GitAvailable = err == nil
 }
 
-// ProcessConfig processes the string-based Include, Exclude, and ExcludeNamesStr fields 
+// ProcessConfig processes the string-based Include, Exclude, and ExcludeNamesStr fields
 // in the Config struct and populates the corresponding slice fields (IncludeExts, ExcludeExts, ExcludeNames).
 //
 // This method should be called after setting the string fields and before using the Config
@@ -331,7 +331,7 @@ func shouldProcess(file string, config *Config) bool {
 // It applies various filters (gitignore, extension/name filters, binary detection) and
 // passes the valid file's content to the processor function to generate formatted output.
 //
-// If the file should be skipped (doesn't exist, is gitignored, doesn't match filters, 
+// If the file should be skipped (doesn't exist, is gitignored, doesn't match filters,
 // or is binary), an empty string is returned and appropriate messages are logged.
 //
 // Parameters:
