@@ -97,7 +97,7 @@
     - **Done‑when:**
         1. `lib/handoff_test.go` exists.
     - **Depends‑on:** [T002]
-- [ ] **T012 · Test · P1: migrate relevant tests from root handoff_test.go to lib/handoff_test.go**
+- [x] **T012 · Test · P1: migrate relevant tests from root handoff_test.go to lib/handoff_test.go**
     - **Context:** PLAN.md § 2.C.1
     - **Action:**
         1. Identify tests in the root `handoff_test.go` that primarily test logic now residing in `lib`.
