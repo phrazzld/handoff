@@ -71,7 +71,7 @@
     - **Done‑when:**
         1. CLI output file writing uses the `lib.WriteToFile` function.
     - **Depends‑on:** [T003, T007]
-- [ ] **T009 · Refactor · P1: verify clipboard handling remains functional in main.go**
+- [x] **T009 · Refactor · P1: verify clipboard handling remains functional in main.go**
     - **Context:** PLAN.md § 2.B.1
     - **Action:**
         1. Ensure the logic for copying output to the clipboard remains within `main.go`.
