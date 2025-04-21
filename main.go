@@ -117,6 +117,34 @@ func checkFileExists(path string) (bool, error) {
 	return false, fmt.Errorf("cannot check if file exists: %w", err)
 }
 
+// processPathUsingLib processes a single path (file or directory) with the default processor.
+// This is a CLI-specific function that uses the library's ProcessPathWithProcessor.
+func processPathUsingLib(path string, builder *strings.Builder, config *handoff.Config, logger *handoff.Logger) {
+	processor := func(file string, content []byte) string {
+		return fmt.Sprintf("<%s>\n```\n%s\n```\n</%s>\n\n", file, string(content), file)
+	}
+	handoff.ProcessPathWithProcessor(path, builder, config, logger, processor)
+}
+
+// logStatisticsUsingLib calculates and logs statistics about the copied content
+// using the library's CalculateStatistics function
+func logStatisticsUsingLib(content string, config *handoff.Config, logger *handoff.Logger) {
+	charCount, lineCount, tokenCount := handoff.CalculateStatistics(content)
+	// Count processed files from the content
+	processedFiles := strings.Count(content, "</")
+
+	// Log statistics
+	logger.Info("Handoff complete:")
+	logger.Info("- Files: %d", processedFiles)
+	logger.Info("- Lines: %d", lineCount)
+	logger.Info("- Characters: %d", charCount)
+	logger.Info("- Estimated tokens: %d", tokenCount)
+
+	if config.Verbose {
+		logger.Verbose("Processed files successfully")
+	}
+}
+
 func main() {
 	// Parse command-line flags and get configuration
 	config, outputFile, force, dryRun := parseConfig()
@@ -186,13 +214,5 @@ func main() {
 	}
 
 	// Calculate and log statistics
-	charCount, lineCount, tokenCount := handoff.CalculateStatistics(formattedContent)
-	// Count processed files from the content
-	processedFiles := strings.Count(formattedContent, "</")
-
-	logger.Info("Handoff complete:")
-	logger.Info("- Files: %d", processedFiles)
-	logger.Info("- Lines: %d", lineCount)
-	logger.Info("- Characters: %d", charCount)
-	logger.Info("- Estimated tokens: %d", tokenCount)
+	logStatisticsUsingLib(formattedContent, config, logger)
 }

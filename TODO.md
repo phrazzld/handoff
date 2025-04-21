@@ -9,7 +9,7 @@
     - **Done‑when:**
         1. A clear map of functions/logic and their destination (lib or main) exists.
     - **Depends‑on:** none
-- [ ] **T002 · Refactor · P1: move core file/output logic from main to lib/handoff.go**
+- [x] **T002 · Refactor · P1: move core file/output logic from main to lib/handoff.go**
     - **Context:** PLAN.md § 2.A.1
     - **Action:**
         1. Relocate identified core logic (file collection, filtering, formatting) from `main/files.go` and `main/output.go` into `lib/handoff.go` or new files within `lib`.
