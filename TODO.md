@@ -202,7 +202,7 @@
     - **Done‑when:**
         1. `go.mod` specifies the correct canonical module path.
     - **Depends‑on:** none
-- [ ] **T023 · Chore · P2: run go mod tidy**
+- [x] **T023 · Chore · P2: run go mod tidy**
     - **Context:** PLAN.md § 2.E.1
     - **Action:**
         1. Run `go mod tidy` in the project root.
