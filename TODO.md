@@ -210,7 +210,7 @@
     - **Done‑when:**
         1. Go module dependencies are cleaned up and consistent.
     - **Depends‑on:** [T010, T016] (Run after all code/test changes potentially affecting dependencies)
-- [ ] **T024 · Chore · P3: plan initial semantic version tag**
+- [x] **T024 · Chore · P3: plan initial semantic version tag**
     - **Context:** PLAN.md § 2.E.1
     - **Action:**
         1. Decide on the initial semantic version for the library release (e.g., `v0.1.0` or `v1.0.0`).

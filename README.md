@@ -235,6 +235,12 @@ go run examples/simple_usage.go --dir ./my-project --output output.md
 - **`/examples`**: Example programs using the library
 - **Root directory**: CLI tool implementation
 
+### Versioning
+
+This project follows Semantic Versioning. The current version is v0.1.0.
+
+For more details on the versioning strategy, see [VERSIONING.md](VERSIONING.md).
+
 ### Testing
 
 ```bash
