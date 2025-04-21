@@ -145,7 +145,7 @@
         2. All CLI functionality (flags, output, filtering) is verified via tests.
         3. Tests pass.
     - **Depends‑on:** [T015]
-- [ ] **T017 · Test · P2: configure and enforce test coverage check for lib package**
+- [x] **T017 · Test · P2: configure and enforce test coverage check for lib package**
     - **Context:** PLAN.md § 2.C.1
     - **Action:**
         1. Configure CI (e.g., GitHub Actions) to calculate test coverage for the `lib` package.

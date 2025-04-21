@@ -1,0 +1,42 @@
+name: Test Coverage
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    name: Test with Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.19
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Run tests with coverage
+        run: go test -coverprofile=coverage.out -covermode=atomic ./lib/...
+
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+          THRESHOLD=85
+          echo "Current coverage: $COVERAGE%"
+          echo "Required coverage: $THRESHOLD%"
+          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            echo "Test coverage is below threshold. Failing."
+            exit 1
+          fi
+          echo "Test coverage is above threshold. Passing."
+      
+      - name: Generate coverage report
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.out
+          flags: lib
+          fail_ci_if_error: true

@@ -66,3 +66,22 @@ For advanced use cases, you can access lower-level functions:
 - `ShouldProcess(file string, config *Config) bool`: Check if a file should be processed
 - `ProcessFile(filePath string, logger *Logger, config *Config, processor ProcessorFunc) string`: Process a single file with custom processor
 - `IsBinaryFile(content []byte) bool`: Detect if content is binary
+
+## Development
+
+### Test Coverage
+
+The library package maintains a minimum test coverage threshold of 85%. This is enforced via GitHub Actions for all pull requests and pushes to the main branch. If you contribute to this library, ensure your changes include appropriate test coverage.
+
+To check coverage locally:
+
+```bash
+go test -coverprofile=coverage.out ./lib/...
+go tool cover -func=coverage.out
+```
+
+For a visual report in your browser:
+
+```bash
+go tool cover -html=coverage.out
+```
