@@ -1,7 +1,7 @@
 # Todo
 
 ## Core Logic Consolidation (lib)
-- [ ] **T001 · Refactor · P1: review logic in main/files.go and main/output.go**
+- [x] **T001 · Refactor · P1: review logic in main/files.go and main/output.go**
     - **Context:** PLAN.md § 2.A.1
     - **Action:**
         1. Identify all logic currently residing in `main/files.go` and `main/output.go`.
