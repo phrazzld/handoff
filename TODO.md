@@ -166,7 +166,7 @@
     - **Done‑when:**
         1. Main `README.md` accurately reflects the project's structure and usage for both library and CLI consumers.
     - **Depends‑on:** [T003, T007]
-- [ ] **T019 · Chore · P2: create/update lib/README.md with api usage guide**
+- [x] **T019 · Chore · P2: create/update lib/README.md with api usage guide**
     - **Context:** PLAN.md § 2.D.1
     - **Action:**
         1. Create or update `lib/README.md`.
