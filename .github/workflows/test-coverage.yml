@@ -33,10 +33,3 @@ jobs:
             exit 1
           fi
           echo "Test coverage is above threshold. Passing."
-      
-      - name: Generate coverage report
-        uses: codecov/codecov-action@v1
-        with:
-          file: ./coverage.out
-          flags: lib
-          fail_ci_if_error: true
