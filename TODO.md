@@ -79,7 +79,7 @@
     - **Done‑when:**
         1. Clipboard functionality works as expected using the library output.
     - **Depends‑on:** [T007]
-- [ ] **T010 · Refactor · P2: remove redundant main/files.go and main/output.go**
+- [x] **T010 · Refactor · P2: remove redundant main/files.go and main/output.go**
     - **Context:** PLAN.md § 2.A.1
     - **Action:**
         1. Confirm all necessary logic from `files.go` and `output.go` has been moved to `lib` or is handled by the refactored `main.go`.
