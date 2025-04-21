@@ -125,7 +125,7 @@
         1. `lib.ProcessProject` behavior is verified with different configurations.
         2. Tests pass.
     - **Depends‑on:** [T011]
-- [ ] **T015 · Test · P1: refactor root handoff_test.go for cli-specific tests**
+- [x] **T015 · Test · P1: refactor root handoff_test.go for cli-specific tests**
     - **Context:** PLAN.md § 2.C.2, § 3
     - **Action:**
         1. Update the root `handoff_test.go` to focus solely on testing CLI behavior.
