@@ -63,7 +63,7 @@
         1. `main.go` uses `lib.ProcessProject` to get the final formatted content string.
         2. CLI execution flow utilizes the library for core work.
     - **Depends‑on:** [T003, T006]
-- [ ] **T008 · Refactor · P1: update main.go to use lib.WriteToFile for file output**
+- [x] **T008 · Refactor · P1: update main.go to use lib.WriteToFile for file output**
     - **Context:** PLAN.md § 2.B.1, § 5
     - **Action:**
         1. If file output logic exists in `main.go`, replace it with a call to `lib.WriteToFile` (assuming `WriteToFile` is part of the lib API as per §5).
