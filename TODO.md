@@ -135,7 +135,7 @@
         1. Root `handoff_test.go` contains only CLI-level tests.
         2. Existing relevant CLI tests pass after refactoring.
     - **Depends‑on:** [T007, T008, T012]
-- [ ] **T016 · Test · P1: add cli integration tests verifying library usage**
+- [x] **T016 · Test · P1: add cli integration tests verifying library usage**
     - **Context:** PLAN.md § 2.C.2, § 3
     - **Action:**
         1. Add tests in root `handoff_test.go` that execute the compiled CLI binary.
