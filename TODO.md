@@ -224,7 +224,7 @@
         4. All tests, including the new one, pass (`go test ./...`)
     - **Depends-on:** T016
 
-- [ ] **T019 · Chore · P0: Mark T001 as Complete**
+- [x] **T019 · Chore · P0: Mark T001 as Complete**
     - **Context:** The implementation (T016), documentation update (T017), and verification (T018) for the fix requested in T001 are now complete.
     - **Action:**
         1. Edit the `TODO.md` file
