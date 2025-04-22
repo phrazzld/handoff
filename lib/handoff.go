@@ -282,7 +282,18 @@ const (
 	binaryNonPrintableThreshold = 0.3 // Threshold ratio of non-printable chars to consider a file binary
 )
 
-// isBinaryFile checks if a file is likely to be binary based on its content (internal helper).
+// isBinaryFile uses heuristics to determine if content is likely binary.
+// This is an internal helper that employs two main detection strategies:
+//  1. Presence of null bytes (ASCII 0): Any null byte indicates binary content
+//  2. High ratio of non-printable characters: If more than 30% of the first 512 bytes
+//     are non-printable, non-whitespace characters, the content is considered binary
+//
+// Note that this heuristic approach:
+//  - Only examines up to the first 512 bytes (configurable via binarySampleSize)
+//  - May produce false positives for some text files with unusual encoding
+//  - May produce false negatives for some binary files that appear text-like
+//  - Only considers ASCII control characters and DEL (127) as non-printable
+//  - Treats common whitespace characters (\n, \r, \t, space) as printable
 func isBinaryFile(content []byte) bool {
 	// Check for null bytes, which are common in binary files
 	if len(content) > 0 && bytes.IndexByte(content, 0) != -1 {

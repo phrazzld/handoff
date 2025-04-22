@@ -115,7 +115,7 @@
         2. All examples demonstrate correct usage
     - **Depends-on:** none
 
-- [ ] **T011 · Docs · P3: Document heuristic nature of isBinaryFile**
+- [x] **T011 · Docs · P3: Document heuristic nature of isBinaryFile**
     - **Context:** Users should understand that binary detection uses heuristics with potential false positives/negatives.
     - **Action:**
         1. Add a Go doc comment to the isBinaryFile function in lib/handoff.go
