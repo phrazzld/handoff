@@ -2,7 +2,7 @@
 
 ## Library Core Improvements
 
-- [ ] **T001 · Bugfix · P0: Fix error handling in ProcessPaths when no files processed**
+- [x] **T001 · Bugfix · P0: Fix error handling in ProcessPaths when no files processed**
     - **Context:** Currently, ProcessPaths returns nil error even when no files are processed, which can mislead callers about whether processing succeeded.
     - **Action:**
         1. Define `ErrNoFilesProcessed` sentinel error in `lib/handoff.go`
