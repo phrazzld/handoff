@@ -92,7 +92,7 @@
         2. Error wraps the underlying error
     - **Depends-on:** none
 
-- [ ] **T009 · Refactor · P3: Improve error messages in main.go**
+- [x] **T009 · Refactor · P3: Improve error messages in main.go**
     - **Context:** Error handling around file writing could provide more context.
     - **Action:**
         1. Update WriteToFile error handling to include the target filename

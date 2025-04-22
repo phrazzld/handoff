@@ -642,9 +642,12 @@ func WriteToFile(content, filePath string) error {
 	// Create parent directories if they don't exist
 	dirPath := filepath.Dir(filePath)
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
-		return fmt.Errorf("failed to create parent directories: %w", err)
+		return fmt.Errorf("failed to create parent directories for %q: %w", filePath, err)
 	}
 	
 	// Write the file
-	return os.WriteFile(filePath, []byte(content), 0644)
+	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		return fmt.Errorf("failed to write to file %q: %w", filePath, err)
+	}
+	return nil
 }
