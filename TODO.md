@@ -13,7 +13,7 @@
         2. Existing tests pass with this change
     - **Depends-on:** none
 
-- [ ] **T002 · Test · P0: Add tests for ErrNoFilesProcessed**
+- [x] **T002 · Test · P0: Add tests for ErrNoFilesProcessed**
     - **Context:** Need to verify the new error handling behavior when processing yields no files.
     - **Action:**
         1. Create `TestProcessProject_NoFilesProcessed` in `lib/handoff_test.go`
