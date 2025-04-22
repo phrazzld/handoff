@@ -639,6 +639,54 @@ func TestProcessPaths_ErrNoFilesProcessed(t *testing.T) {
 	}
 }
 
+// TestProcessProject_NoFilesProcessed tests that ProcessProject returns ErrNoFilesProcessed when appropriate
+func TestProcessProject_NoFilesProcessed(t *testing.T) {
+	// Create a temporary directory
+	tmpDir, err := os.MkdirTemp("", "handoff-project-nofiles-test-")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create a file that we can exclude with configuration
+	filePath := filepath.Join(tmpDir, "test.txt")
+	if err := os.WriteFile(filePath, []byte("test content"), 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Manually set GitAvailable to false to ensure we use filepath.Walk
+	// which will count the files properly for this test
+	originalGitAvailable := GitAvailable
+	GitAvailable = false
+	defer func() {
+		// Restore the original value
+		GitAvailable = originalGitAvailable
+	}()
+
+	// Create config that will exclude the file
+	config := NewConfig()
+	config.Exclude = ".txt" // Exclude the .txt file we created
+	config.ProcessConfig()
+
+	// Call ProcessProject
+	content, stats, err := ProcessProject([]string{tmpDir}, config)
+
+	// Assert that we get the expected error
+	if !errors.Is(err, ErrNoFilesProcessed) {
+		t.Errorf("Expected ErrNoFilesProcessed, got %v", err)
+	}
+
+	// Assert that the returned content is empty
+	if content != "" {
+		t.Errorf("Expected empty content, got %q", content)
+	}
+
+	// Assert that FilesProcessed is 0
+	if stats.FilesProcessed != 0 {
+		t.Errorf("Expected FilesProcessed to be 0, got %d", stats.FilesProcessed)
+	}
+}
+
 // TestWriteToFileWithDirectoryCreation tests that WriteToFile creates parent directories
 func TestWriteToFileWithDirectoryCreation(t *testing.T) {
 	// Create a temporary base directory for testing
