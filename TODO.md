@@ -55,7 +55,7 @@
         2. Tests pass, including added tests for this feature.
     - **Depends-on:** none
 
-- [ ] **T006 · Test · P2: add test for directory creation in `WriteToFile`**
+- [x] **T006 · Test · P2: add test for directory creation in `WriteToFile`**
     - **Context:** cr-04 Align `WriteToFile` Docs/Implementation (Dir Creation) - Step 6
     - **Action:**
         1. Add test case to `lib/handoff_test.go` for `WriteToFile` creating directories.
