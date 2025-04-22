@@ -122,7 +122,7 @@
         2. Tests still pass and functionality is maintained.
     - **Depends-on:** none
 
-- [ ] **T012 · Chore · P3: remove unused function `processPathUsingLib`**
+- [x] **T012 · Chore · P3: remove unused function `processPathUsingLib`**
     - **Context:** "The `processPathUsingLib` helper function is unused after the refactoring." (cr code review)
     - **Action:**
         1. Remove the unused `processPathUsingLib` function from `main.go`.
