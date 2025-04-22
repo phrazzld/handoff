@@ -50,7 +50,7 @@
         2. Misleading comment is removed
     - **Depends-on:** none
 
-- [ ] **T005 · Test · P1: Add verbose output assertions to TestProcessProjectWithVerbose**
+- [x] **T005 · Test · P1: Add verbose output assertions to TestProcessProjectWithVerbose**
     - **Context:** The test captures stderr but doesn't verify that verbose output was actually produced.
     - **Action:**
         1. Retrieve the captured stderr content (buf.String())

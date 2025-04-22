@@ -577,10 +577,25 @@ func TestProcessProjectWithVerbose(t *testing.T) {
 	}
 	os.Stderr = oldStderr
 
-	// Read the captured output but don't use it since we're no longer checking log output
+	// Read the captured output to verify verbose logging messages
 	var buf bytes.Buffer
-	_, _ = io.Copy(&buf, r)
-	// The logging output is no longer relevant for this test
+	_, err = io.Copy(&buf, r)
+	if err != nil {
+		t.Errorf("Failed to read stderr output: %v", err)
+	}
+	
+	// Check for expected verbose output messages
+	verboseOutput := buf.String()
+	expectedMessages := []string{
+		"Processing path:",
+		"Processing file",
+	}
+	
+	for _, msg := range expectedMessages {
+		if !strings.Contains(verboseOutput, msg) {
+			t.Errorf("Verbose output missing expected message: %q", msg)
+		}
+	}
 
 	// Verify we have valid content
 	if len(content) == 0 {
