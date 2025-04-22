@@ -587,8 +587,9 @@ func CalculateStatistics(content string) (charCount, lineCount, tokenCount int) 
 //
 // Returns:
 //   - The formatted content wrapped in context tags
+//   - Stats struct with information about processed files and content
 //   - An error if no paths are provided or if processing fails
-func ProcessProject(paths []string, config *Config) (string, error) {
+func ProcessProject(paths []string, config *Config) (string, Stats, error) {
 	if config == nil {
 		config = NewConfig()
 	}
@@ -597,29 +598,19 @@ func ProcessProject(paths []string, config *Config) (string, error) {
 	logger := NewLogger(config.Verbose)
 
 	if len(paths) == 0 {
-		return "", fmt.Errorf("no paths provided")
+		return "", Stats{}, fmt.Errorf("no paths provided")
 	}
 
 	// Process paths
 	content, stats, err := ProcessPaths(paths, config, logger)
 	if err != nil {
-		return "", err
+		return "", Stats{}, err
 	}
 
 	// Wrap content in context tag
 	formattedContent := WrapInContext(content)
 
-	// Log statistics
-	if config.Verbose {
-		logger.Info("Handoff complete:")
-		logger.Info("- Files: %d", stats.FilesProcessed)
-		logger.Info("- Lines: %d", stats.Lines)
-		logger.Info("- Characters: %d", stats.Chars)
-		logger.Info("- Estimated tokens: %d", stats.Tokens)
-		logger.Verbose("Processed %d/%d files", stats.FilesProcessed, stats.FilesTotal)
-	}
-
-	return formattedContent, nil
+	return formattedContent, stats, nil
 }
 
 // WriteToFile writes the content to a file at the specified path.

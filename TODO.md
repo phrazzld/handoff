@@ -33,7 +33,7 @@
         2. No direct logging of statistics occurs in this function.
     - **Depends-on:** T002
 
-- [ ] **T004 · Refactor · P1: update `ProcessProject` to return Stats**
+- [x] **T004 · Refactor · P1: update `ProcessProject` to return Stats**
     - **Context:** cr-07 Refactor `ProcessProject` to Return Stats, Not Log - Step 3/4
     - **Action:**
         1. Modify `ProcessProject` function signature to return `(string, Stats, error)`.
