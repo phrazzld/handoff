@@ -4,6 +4,7 @@ package handoff
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -490,7 +491,7 @@ func TestProcessProject(t *testing.T) {
 			name:    "Invalid path",
 			paths:   []string{"/path/that/does/not/exist"},
 			config:  NewConfig(),
-			wantErr: false, // It shouldn't error, just return empty content
+			wantErr: false, // We shouldn't return an error for non-existent paths now
 			expectContent: []string{},
 		},
 	}
@@ -596,6 +597,46 @@ func TestProcessProjectWithVerbose(t *testing.T) {
 	
 	// ProcessProject no longer logs statistics directly as that's the caller's responsibility
 	// This test now verifies that the Stats struct is properly populated instead
+}
+
+// TestProcessPaths_ErrNoFilesProcessed tests the error handling in ProcessPaths when no files are processed
+func TestProcessPaths_ErrNoFilesProcessed(t *testing.T) {
+	// Create a temporary directory
+	tmpDir, err := os.MkdirTemp("", "handoff-nofiles-test-")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create a file that we can exclude with config
+	filePath := filepath.Join(tmpDir, "test.txt")
+	if err := os.WriteFile(filePath, []byte("test content"), 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Create config that will exclude the file
+	config := NewConfig()
+	config.Exclude = ".txt" // Exclude the .txt file we created
+	config.ProcessConfig()
+	logger := NewLogger(false)
+
+	// Call ProcessPaths
+	_, stats, err := ProcessPaths([]string{tmpDir}, config, logger)
+
+	// Assert that we get the expected error
+	if !errors.Is(err, ErrNoFilesProcessed) {
+		t.Errorf("Expected ErrNoFilesProcessed, got %v", err)
+	}
+
+	// Assert that FilesProcessed is 0
+	if stats.FilesProcessed != 0 {
+		t.Errorf("Expected FilesProcessed to be 0, got %d", stats.FilesProcessed)
+	}
+
+	// Assert that FilesTotal is greater than 0
+	if stats.FilesTotal <= 0 {
+		t.Errorf("Expected FilesTotal to be > 0, got %d", stats.FilesTotal)
+	}
 }
 
 // TestWriteToFileWithDirectoryCreation tests that WriteToFile creates parent directories

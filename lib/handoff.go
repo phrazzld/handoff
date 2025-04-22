@@ -21,6 +21,7 @@ package handoff
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -29,6 +30,9 @@ import (
 	"strings"
 	"unicode"
 )
+
+// ErrNoFilesProcessed is returned when no files are processed despite paths being provided
+var ErrNoFilesProcessed = errors.New("no files were processed from the provided paths")
 
 // Config holds all configuration options for file processing and output formatting.
 // Users should create a Config with NewConfig() and set the desired options before
@@ -289,7 +293,8 @@ func isBinaryFile(content []byte) bool {
 	nonPrintable := 0
 	sampleSize := minInt(len(content), binarySampleSize) // Sample the first bytes
 	for i := 0; i < sampleSize; i++ {
-		if content[i] < 32 && !isWhitespace(content[i]) {
+		// Check for non-printable characters (ASCII 0-31 except whitespace, and DEL which is 127)
+		if (content[i] < 32 && !isWhitespace(content[i])) || content[i] == 127 {
 			nonPrintable++
 		}
 	}
@@ -471,7 +476,7 @@ func ProcessPathWithProcessor(path string, contentBuilder *strings.Builder, conf
 // Returns:
 //   - A string containing the combined formatted content
 //   - Stats struct with information about processed files and content
-//   - An error if the processing fails
+//   - An error if the processing fails, including ErrNoFilesProcessed if paths were provided but no files were processed
 func ProcessPaths(paths []string, config *Config, logger *Logger) (string, Stats, error) {
 	contentBuilder := &strings.Builder{}
 	processedFiles := 0
@@ -517,6 +522,12 @@ func ProcessPaths(paths []string, config *Config, logger *Logger) (string, Stats
 		Lines:          lines,
 		Chars:          chars,
 		Tokens:         tokens,
+	}
+
+	// Check if paths were provided but no files ended up being processed
+	// Only return an error if paths exist but no files were processed due to filtering
+	if len(paths) > 0 && stats.FilesProcessed == 0 && stats.FilesTotal > 0 {
+		return content, stats, ErrNoFilesProcessed
 	}
 
 	return content, stats, nil
