@@ -146,7 +146,7 @@
 
 ## Final Tasks
 
-- [ ] **T014 · Chore · P3: Add missing newlines at EOF**
+- [x] **T014 · Chore · P3: Add missing newlines at EOF**
     - **Context:** Some files are missing the standard newline at end-of-file.
     - **Action:**
         1. Identify affected files (.yml, .go, .md, etc.)
