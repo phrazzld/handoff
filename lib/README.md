@@ -124,7 +124,18 @@ Analyzes content and returns statistics.
   - `lineCount int`: Number of lines in the content
   - `tokenCount int`: Estimated token count (helpful for LLM context limits)
 - **Notes:**
-  - Token count is an approximation based on common tokenization rules (roughly 4 characters per token)
+  - **Token count is a simple approximation** based on whitespace boundaries:
+    - Counts transitions between whitespace and non-whitespace characters
+    - Treats any continuous sequence of non-whitespace characters as one token
+    - Is significantly less sophisticated than actual LLM tokenizers
+  - **Limitations compared to real LLM tokenizers:**
+    - Real tokenizers use subword tokenization algorithms with trained vocabularies
+    - They have special handling for punctuation, common words, and different languages
+    - The approximation may undercount tokens (e.g., punctuation often gets separate tokens)
+    - The approximation may overcount tokens (e.g., common words often get single tokens)
+  - **Usage guidance:**
+    - For LLM usage planning, consider adding a 30-50% safety margin to these estimates
+    - When precise token counts matter, use the tokenizer specific to your LLM provider
 
 ## Configuration
 

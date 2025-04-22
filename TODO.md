@@ -135,7 +135,7 @@
         1. Function has clear documentation about its limitations
     - **Depends-on:** none
 
-- [ ] **T013 · Docs · P3: Update README regarding token estimation limitations**
+- [x] **T013 · Docs · P3: Update README regarding token estimation limitations**
     - **Context:** Documentation should clarify that token counts are approximate.
     - **Action:**
         1. Add a note in the CalculateStatistics section of lib/README.md
