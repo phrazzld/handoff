@@ -325,9 +325,9 @@ config := lib.NewConfig()
 config.ProcessConfig()
 
 // Define a custom processor function
-processor := func(content string, filePath string) string {
+processor := func(filePath string, content []byte) string {
     // Custom content transformation
-    return fmt.Sprintf("PROCESSED: %s\n%s", filePath, content)
+    return fmt.Sprintf("PROCESSED: %s\n%s", filePath, string(content))
 }
 
 result := lib.ProcessFile("./main.go", logger, config, processor)
