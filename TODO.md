@@ -131,27 +131,6 @@
         2. Code still compiles and tests pass.
     - **Depends-on:** none
 
-## Examples Update
-
-- [ ] **T013 · Refactor · P2: update `gemini_planner.go` example to use Stats**
-    - **Context:** cr-07 Update examples that call `ProcessProject` - Step 6
-    - **Action:**
-        1. Update `examples/gemini_planner.go` to use the new `ProcessProject` return values.
-        2. Replace any calls to `CalculateStatistics` with values from the returned Stats.
-    - **Done-when:**
-        1. Example compiles with updated library API.
-        2. Example uses Stats struct for statistics instead of recalculating.
-    - **Depends-on:** T004
-
-- [ ] **T014 · Refactor · P2: update `simple_usage.go` example to use Stats**
-    - **Context:** cr-07 Update examples that call `ProcessProject` - Step 6
-    - **Action:**
-        1. Update `examples/simple_usage.go` to use the new `ProcessProject` return values.
-        2. Replace any calls to `CalculateStatistics` with values from the returned Stats.
-    - **Done-when:**
-        1. Example compiles with updated library API.
-        2. Example uses Stats struct for statistics instead of recalculating.
-    - **Depends-on:** T004
 
 ## CI Improvements
 

@@ -14,7 +14,6 @@ Handoff is both a command-line tool and a Go library for collecting and formatti
 - [Output Format](#output-format)
 - [Output Statistics](#output-statistics)
 - [Git Integration](#git-integration)
-- [Examples](#examples)
 - [Development and Contributing](#development-and-contributing)
 - [License](#license)
 
@@ -145,7 +144,7 @@ func main() {
 }
 ```
 
-For more details on the library API, see the [lib/README.md](lib/README.md) documentation and check the `examples` directory for complete examples.
+For more details on the library API, see the [lib/README.md](lib/README.md) documentation.
 
 ### Output Format
 
@@ -207,32 +206,12 @@ When processing directories, Handoff respects `.gitignore` rules:
 - In non-Git directories, hidden files (starting with `.`) will be skipped
 - This ensures that binary files, build artifacts, and other irrelevant files are not copied
 
-## Examples
-
-The examples directory contains practical implementations using the Handoff library:
-
-### Gemini Planner
-
-The `examples/gemini_planner.go` demonstrates integrating Handoff with Google's Gemini API to generate technical plans from your codebase.
-
-```bash
-go run examples/gemini_planner.go --project ./my-project --prompt "Add authentication to the application" --output PLAN.md
-```
-
-### Simple Usage Example
-
-For a minimal example of using the library, see `examples/simple_usage.go` (coming soon).
-
-```bash
-go run examples/simple_usage.go --dir ./my-project --output output.md
-```
 
 ## Development and Contributing
 
 ### Project Structure
 
 - **`/lib`**: The library package (importable as `github.com/phrazzld/handoff/lib`)
-- **`/examples`**: Example programs using the library
 - **Root directory**: CLI tool implementation
 
 ### Versioning

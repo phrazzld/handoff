@@ -11,7 +11,6 @@ This package provides programmatic access to Handoff's core functionality for co
 - [Basic Usage](#usage)
 - [Configuration](#configuration)
 - [Core Functions](#core-functions)
-- [Examples](#examples)
 - [Advanced Usage](#advanced-usage)
 - [Development](#development)
 
@@ -179,7 +178,7 @@ config.ProcessConfig()
 - **Verbose**: Enable detailed logging
   - When true, shows verbose information about file processing
 
-## Examples
+## Additional Examples
 
 ### Processing Files with Different Configurations
 
@@ -263,9 +262,6 @@ func processMultiplePaths() {
 }
 ```
 
-### Gemini Integration
-
-For a complete example of using this library with Google's Gemini API, see `examples/gemini_planner.go` in the main project repository.
 
 ## Advanced Usage
 
