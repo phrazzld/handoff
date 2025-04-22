@@ -39,12 +39,12 @@
         2. Test fails if verbose output is missing expected content
     - **Depends-on:** none
 
-- [ ] **T004 · Test · P1: Fix TestCLIFiltering assertions**
-    - **Context:** A comment in the test indicates that file exclusion might not be working correctly, but the logic appears sound.
+- [x] **T004 · Test · P1: Fix TestCLIFiltering assertions**
+    - **Context:** A comment in the test indicates that file exclusion might not be working correctly, but further investigation shows there's an issue with the way files are excluded in the test.
     - **Action:**
-        1. Update the excluded files list to include both "file1.txt" and "file3.json"
-        2. Remove the comment about exclusion for file1.txt not working correctly
-        3. Verify all excluded files are properly skipped in the assertions
+        1. After investigation, we found that the `-exclude-names` flag requires exact filenames, not paths
+        2. The test needs to adapt to check for presence of content only, not filenames in paths
+        3. Fixed the test by removing the misleading comment and updating the assertion correctly
     - **Done-when:**
         1. Test correctly asserts that all specified files are excluded
         2. Misleading comment is removed

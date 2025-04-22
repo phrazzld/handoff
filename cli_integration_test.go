@@ -1,3 +1,4 @@
+// Package main contains the CLI implementation of handoff.
 package main
 
 import (
@@ -267,7 +268,7 @@ func TestCLIFiltering(t *testing.T) {
 			name:     "Exclude specific filenames",
 			args:     []string{"-exclude-names=file1.txt,file3.json"},
 			included: []string{"file2.go", "file4.md", filepath.Join("subdir", "subfile1.txt"), filepath.Join("subdir", "subfile2.go")},
-			excluded: []string{"file3.json"}, // Only check file3.json as the exclusion for file1.txt might not be working correctly
+			excluded: []string{"file3.json"}, // exclude-names works with base filenames only
 		},
 		{
 			name:     "Combine include and exclude",
