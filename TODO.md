@@ -111,7 +111,7 @@
         3. `go test ./...` passes with no errors.
     - **Depends-on:** none
 
-- [ ] **T011 · Test · P2: remove duplicate test helper functions**
+- [x] **T011 · Test · P2: remove duplicate test helper functions**
     - **Context:** cr-05 Remove Duplicate Test Helper Functions
     - **Action:**
         1. Identify helper functions duplicated in `cli_integration_test.go` and main code.

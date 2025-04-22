@@ -136,20 +136,7 @@ func TestParseConfigOutputAndForceFlags(t *testing.T) {
 // - TestInvalidPathErrorHandling: Functionality covered by TestCLIErrorHandling in cli_integration_test.go 
 //   and TestWriteToFileWithDirectoryCreation in lib/handoff_test.go
 
-// determineOutputMode mimics the precedence logic in main() for testing purposes
-// Returns "dry-run", "file", or "clipboard" based on the provided flags
-func determineOutputMode(dryRun bool, outputFile string) string {
-	if dryRun {
-		// Highest precedence: dry-run mode
-		return "dry-run"
-	} else if outputFile != "" {
-		// Medium precedence: write to file
-		return "file"
-	} else {
-		// Lowest precedence: copy to clipboard (default behavior)
-		return "clipboard"
-	}
-}
+// Note: determineOutputMode function was removed as it duplicated the output mode logic in main.go
 
 // TestFlagInteractionPrecedence tests that the correct precedence is followed
 // when various combinations of flags are used
@@ -233,12 +220,19 @@ func TestFlagInteractionPrecedence(t *testing.T) {
 			// Parse flags
 			_, outputPath, _, dryRun := parseConfig()
 
-			// Determine the output mode based on the flags
-			outputMode := determineOutputMode(dryRun, outputPath)
+			// Directly determine and verify the expected output mode based on the flags
+			var actualMode string
+			if dryRun {
+				actualMode = "dry-run"
+			} else if outputPath != "" {
+				actualMode = "file"
+			} else {
+				actualMode = "clipboard"
+			}
 
-			// Verify the correct output mode was selected
-			if outputMode != tc.expectedOutputMode {
-				t.Errorf("Expected output mode %q, got %q", tc.expectedOutputMode, outputMode)
+			// Verify the correct output mode based on precedence rules
+			if actualMode != tc.expectedOutputMode {
+				t.Errorf("Expected output mode %q, got %q", tc.expectedOutputMode, actualMode)
 			}
 		})
 	}

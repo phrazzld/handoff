@@ -118,14 +118,7 @@ func checkFileExists(path string) (bool, error) {
 	return false, fmt.Errorf("cannot check if file exists: %w", err)
 }
 
-// processPathUsingLib processes a single path (file or directory) with the default processor.
-// This is a CLI-specific function that uses the library's ProcessPathWithProcessor.
-func processPathUsingLib(path string, builder *strings.Builder, config *handoff.Config, logger *handoff.Logger) {
-	processor := func(file string, content []byte) string {
-		return fmt.Sprintf("<%s>\n```\n%s\n```\n</%s>\n\n", file, string(content), file)
-	}
-	handoff.ProcessPathWithProcessor(path, builder, config, logger, processor)
-}
+// Note: processPathUsingLib function was removed as it was unused after refactoring
 
 // logStatisticsUsingLib logs statistics about the processed content
 // using the Stats struct returned by ProcessProject
