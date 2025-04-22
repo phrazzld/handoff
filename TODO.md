@@ -145,7 +145,7 @@
         2. Tests for the tool pass.
     - **Depends-on:** none
 
-- [ ] **T016 · CI · P2: update CI workflow to use coverage checker**
+- [x] **T016 · CI · P2: update CI workflow to use coverage checker**
     - **Context:** cr-02 Replace Brittle CI Shell Script - Steps 4-5
     - **Action:**
         1. Update `.github/workflows/test-coverage.yml` to build and use coverage checker.

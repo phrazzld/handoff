@@ -22,14 +22,13 @@ jobs:
       - name: Run tests with coverage
         run: go test -coverprofile=coverage.out -covermode=atomic ./lib/...
 
+      - name: Build coverage checker tool
+        run: |
+          cd tools/coverage-check
+          go build -o coverage-check
+
       - name: Check coverage threshold
         run: |
-          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
           THRESHOLD=85
-          echo "Current coverage: $COVERAGE%"
-          echo "Required coverage: $THRESHOLD%"
-          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
-            echo "Test coverage is below threshold. Failing."
-            exit 1
-          fi
-          echo "Test coverage is above threshold. Passing."
+          echo "Checking coverage against threshold: $THRESHOLD%"
+          ./tools/coverage-check/coverage-check -file coverage.out -threshold $THRESHOLD -verbose
