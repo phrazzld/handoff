@@ -99,7 +99,7 @@
         2. Function uses only the Stats struct for reporting.
     - **Depends-on:** T008
 
-- [ ] **T010 · Test · P2: remove redundant CLI tests**
+- [x] **T010 · Test · P2: remove redundant CLI tests**
     - **Context:** cr-03 Remove Redundant CLI Tests from Unit Tests
     - **Action:**
         1. Review and identify redundant tests in `handoff_test.go`.
