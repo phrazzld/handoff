@@ -127,19 +127,15 @@ func processPathUsingLib(path string, builder *strings.Builder, config *handoff.
 	handoff.ProcessPathWithProcessor(path, builder, config, logger, processor)
 }
 
-// logStatisticsUsingLib calculates and logs statistics about the copied content
-// using the library's CalculateStatistics function
-func logStatisticsUsingLib(content string, config *handoff.Config, logger *handoff.Logger) {
-	charCount, lineCount, tokenCount := handoff.CalculateStatistics(content)
-	// Count processed files from the content
-	processedFiles := strings.Count(content, "</")
-
+// logStatisticsUsingLib logs statistics about the processed content
+// using the Stats struct returned by ProcessProject
+func logStatisticsUsingLib(stats handoff.Stats, config *handoff.Config, logger *handoff.Logger) {
 	// Log statistics
 	logger.Info("Handoff complete:")
-	logger.Info("- Files: %d", processedFiles)
-	logger.Info("- Lines: %d", lineCount)
-	logger.Info("- Characters: %d", charCount)
-	logger.Info("- Estimated tokens: %d", tokenCount)
+	logger.Info("- Files: %d/%d", stats.FilesProcessed, stats.FilesTotal)
+	logger.Info("- Lines: %d", stats.Lines)
+	logger.Info("- Characters: %d", stats.Chars)
+	logger.Info("- Estimated tokens: %d", stats.Tokens)
 
 	if config.Verbose {
 		logger.Verbose("Processed files successfully")
@@ -185,7 +181,7 @@ func main() {
 	}
 
 	// Process paths and get content
-	formattedContent, err := handoff.ProcessProject(flag.Args(), config)
+	formattedContent, stats, err := handoff.ProcessProject(flag.Args(), config)
 	if err != nil {
 		logger.Error("Failed to process project: %v", err)
 		os.Exit(1)
@@ -214,6 +210,6 @@ func main() {
 		logger.Info("Content successfully copied to clipboard.")
 	}
 
-	// Calculate and log statistics
-	logStatisticsUsingLib(formattedContent, config, logger)
+	// Log statistics
+	logStatisticsUsingLib(stats, config, logger)
 }

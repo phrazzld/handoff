@@ -78,7 +78,7 @@
 
 ## CLI Improvements
 
-- [ ] **T008 · Refactor · P1: update main to use returned Stats struct**
+- [x] **T008 · Refactor · P1: update main to use returned Stats struct**
     - **Context:** cr-07/08 Refactor `ProcessProject` and Fix Fragile File Count Calc - Steps 5/2-4
     - **Action:**
         1. Update `main` function in `main.go` to capture the Stats struct returned by `handoff.ProcessProject`.

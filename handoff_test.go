@@ -200,7 +200,7 @@ func TestFileCreation(t *testing.T) {
 	}
 
 	// Process the project files
-	formattedContent, err := handoff.ProcessProject([]string{tempDir}, config)
+	formattedContent, _, err := handoff.ProcessProject([]string{tempDir}, config)
 	if err != nil {
 		t.Fatalf("Failed to process project: %v", err)
 	}
@@ -326,7 +326,7 @@ func TestFileOverwriteProtection(t *testing.T) {
 	}
 
 	// Process the project files
-	formattedContent, err := handoff.ProcessProject([]string{tempDir}, config)
+	formattedContent, _, err := handoff.ProcessProject([]string{tempDir}, config)
 	if err != nil {
 		t.Fatalf("Failed to process project: %v", err)
 	}
@@ -448,7 +448,7 @@ func TestInvalidPathErrorHandling(t *testing.T) {
 	}
 
 	// Process the project files
-	formattedContent, err := handoff.ProcessProject([]string{tempDir}, config)
+	formattedContent, _, err := handoff.ProcessProject([]string{tempDir}, config)
 	if err != nil {
 		t.Fatalf("Failed to process project: %v", err)
 	}
