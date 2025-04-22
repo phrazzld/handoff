@@ -104,7 +104,7 @@
 
 ## Documentation Improvements
 
-- [ ] **T010 · Docs · P3: Document ProcessConfig requirement in README**
+- [x] **T010 · Docs · P3: Document ProcessConfig requirement in README**
     - **Context:** Documentation doesn't clearly emphasize the need to call ProcessConfig().
     - **Action:**
         1. Add a prominent note in the "Configuration" section of lib/README.md

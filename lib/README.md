@@ -39,7 +39,10 @@ func main() {
 	config.Verbose = true
 	config.Exclude = ".exe,.bin,.jpg,.png"
 	config.ExcludeNamesStr = "node_modules,package-lock.json"
-	config.ProcessConfig() // This converts the string settings into slices
+	
+	// REQUIRED: Call ProcessConfig() to convert string-based settings into slices
+	// Skipping this step will cause your include/exclude filters not to work!
+	config.ProcessConfig()
 
 	// Process project files
 	content, stats, err := lib.ProcessProject([]string{"./my-project"}, config)
@@ -76,7 +79,7 @@ The main function that processes one or more files or directories and returns th
 
 - **Parameters:**
   - `paths []string`: File or directory paths to process
-  - `config *Config`: Configuration options for processing
+  - `config *Config`: Configuration options for processing (can be nil for defaults)
 - **Returns:**
   - `string`: Formatted content from all processed files
   - `Stats`: Statistics about processed files and content
@@ -84,6 +87,10 @@ The main function that processes one or more files or directories and returns th
 - **Error handling:**
   - Returns errors for inaccessible paths or problems reading files
   - Non-critical errors (like skipping a single file) are logged but don't stop processing
+- **Notes:**
+  - ProcessProject automatically calls ProcessConfig() on the provided configuration
+  - This means you can set string-based filters directly before calling ProcessProject
+  - However, for clarity and consistent practice, it's still recommended to call ProcessConfig() yourself after setting configuration options
 
 ### WriteToFile
 
@@ -152,9 +159,20 @@ config.Exclude = ".exe,.dll,.jpg,.png,.gif"
 config.ExcludeNamesStr = "node_modules,dist,build"
 config.Format = "File: {path}\n```\n{content}\n```\n\n"
 
-// Process string-based configs into slices (required before use)
+// IMPORTANT: Process string-based configs into slices (required before use)
 config.ProcessConfig()
 ```
+
+### IMPORTANT: Processing Configuration
+
+**You MUST call `ProcessConfig()` after setting any string-based configuration options.**
+
+The `ProcessConfig()` method converts the string-based configuration fields (`Include`, `Exclude`, `ExcludeNamesStr`) into their corresponding slice fields (`IncludeExts`, `ExcludeExts`, `ExcludeNames`) that are used during file processing.
+
+If you forget to call `ProcessConfig()`:
+- Your string-based include/exclude patterns will NOT be applied
+- No files will be filtered by extension or name as intended
+- The library will use whatever was previously in the slice fields (usually empty)
 
 ### Key Configuration Options
 
@@ -193,7 +211,7 @@ import (
 func main() {
 	// Example 1: Default configuration
 	defaultConfig := lib.NewConfig()
-	defaultConfig.ProcessConfig()
+	defaultConfig.ProcessConfig() // Required step to process any string-based settings
 	
 	content1, stats1, err := lib.ProcessProject([]string{"./src"}, defaultConfig)
 	if err != nil {
@@ -204,7 +222,7 @@ func main() {
 	// Example 2: Include only specific file types
 	codeConfig := lib.NewConfig()
 	codeConfig.Include = ".go,.ts,.js"
-	codeConfig.ProcessConfig()
+	codeConfig.ProcessConfig() // Required to convert string filters to slices
 	
 	content2, stats2, err := lib.ProcessProject([]string{"./src"}, codeConfig)
 	if err != nil {
@@ -215,7 +233,7 @@ func main() {
 	// Example 3: Custom format
 	markdownConfig := lib.NewConfig()
 	markdownConfig.Format = "## {path}\n\n```go\n{content}\n```\n\n"
-	markdownConfig.ProcessConfig()
+	markdownConfig.ProcessConfig() // Note: ProcessProject calls this internally, but it's good practice to call it explicitly
 	
 	content3, stats3, err := lib.ProcessProject([]string{"./main.go"}, markdownConfig)
 	if err != nil {
@@ -235,6 +253,8 @@ func main() {
 ```go
 func processMultiplePaths() {
 	config := lib.NewConfig()
+	// No string-based settings to process in this example, but it's
+	// still good practice to call ProcessConfig() before using the config
 	config.ProcessConfig()
 	
 	// Process multiple specific files
