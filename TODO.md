@@ -88,7 +88,7 @@
         2. Tests pass.
     - **Depends-on:** T004
 
-- [ ] **T009 · Refactor · P1: refactor CLI statistics logging**
+- [x] **T009 · Refactor · P1: refactor CLI statistics logging**
     - **Context:** cr-08/09 Update logStatisticsUsingLib to use Stats
     - **Action:**
         1. Modify `logStatisticsUsingLib` function to accept Stats struct.
