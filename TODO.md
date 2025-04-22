@@ -22,7 +22,7 @@
         1. Stats struct is defined in `lib/handoff.go` with proper documentation.
     - **Depends-on:** none
 
-- [ ] **T003 · Refactor · P1: update `ProcessPaths` to return Stats**
+- [x] **T003 · Refactor · P1: update `ProcessPaths` to return Stats**
     - **Context:** cr-07 Refactor `ProcessProject` to Return Stats, Not Log - Step 2
     - **Action:**
         1. Modify `ProcessPaths` function signature to return `(string, Stats, error)`.

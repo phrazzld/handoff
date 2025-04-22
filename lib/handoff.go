@@ -470,9 +470,9 @@ func ProcessPathWithProcessor(path string, contentBuilder *strings.Builder, conf
 //
 // Returns:
 //   - A string containing the combined formatted content
-//   - The number of files successfully processed
-//   - The total number of candidate files found (before filtering)
-func ProcessPaths(paths []string, config *Config, logger *Logger) (string, int, int) {
+//   - Stats struct with information about processed files and content
+//   - An error if the processing fails
+func ProcessPaths(paths []string, config *Config, logger *Logger) (string, Stats, error) {
 	contentBuilder := &strings.Builder{}
 	processedFiles := 0
 	totalFiles := 0
@@ -505,7 +505,21 @@ func ProcessPaths(paths []string, config *Config, logger *Logger) (string, int, 
 		ProcessPathWithProcessor(path, contentBuilder, config, logger, pathProcessor)
 	}
 
-	return contentBuilder.String(), processedFiles, totalFiles
+	content := contentBuilder.String()
+	
+	// Calculate statistics for the content
+	chars, lines, tokens := CalculateStatistics(content)
+	
+	// Create and populate Stats struct
+	stats := Stats{
+		FilesProcessed: processedFiles,
+		FilesTotal:     totalFiles,
+		Lines:          lines,
+		Chars:          chars,
+		Tokens:         tokens,
+	}
+
+	return content, stats, nil
 }
 
 // WrapInContext wraps the content in top-level context tags.
@@ -587,20 +601,22 @@ func ProcessProject(paths []string, config *Config) (string, error) {
 	}
 
 	// Process paths
-	content, processedFiles, totalFiles := ProcessPaths(paths, config, logger)
+	content, stats, err := ProcessPaths(paths, config, logger)
+	if err != nil {
+		return "", err
+	}
 
 	// Wrap content in context tag
 	formattedContent := WrapInContext(content)
 
 	// Log statistics
 	if config.Verbose {
-		charCount, lineCount, tokenCount := CalculateStatistics(formattedContent)
 		logger.Info("Handoff complete:")
-		logger.Info("- Files: %d", processedFiles)
-		logger.Info("- Lines: %d", lineCount)
-		logger.Info("- Characters: %d", charCount)
-		logger.Info("- Estimated tokens: %d", tokenCount)
-		logger.Verbose("Processed %d/%d files", processedFiles, totalFiles)
+		logger.Info("- Files: %d", stats.FilesProcessed)
+		logger.Info("- Lines: %d", stats.Lines)
+		logger.Info("- Characters: %d", stats.Chars)
+		logger.Info("- Estimated tokens: %d", stats.Tokens)
+		logger.Verbose("Processed %d/%d files", stats.FilesProcessed, stats.FilesTotal)
 	}
 
 	return formattedContent, nil
