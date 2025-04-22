@@ -115,7 +115,7 @@ func checkFileExists(path string) (bool, error) {
 		return false, nil
 	}
 	// Some other error occurred (e.g., permission denied)
-	return false, fmt.Errorf("cannot check if file exists: %w", err)
+	return false, fmt.Errorf("cannot check if file %q exists: %w", path, err)
 }
 
 // Note: processPathUsingLib function was removed as it was unused after refactoring

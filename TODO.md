@@ -83,7 +83,7 @@
         2. Errors wrap underlying errors using %w
     - **Depends-on:** none
 
-- [ ] **T008 · Refactor · P3: Improve error message in checkFileExists**
+- [x] **T008 · Refactor · P3: Improve error message in checkFileExists**
     - **Context:** The error message when os.Stat fails lacks context about the path being checked.
     - **Action:**
         1. Modify error handling to use `fmt.Errorf("cannot check if file %q exists: %w", path, err)`
