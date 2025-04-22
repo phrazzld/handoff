@@ -31,7 +31,8 @@ import (
 	"unicode"
 )
 
-// ErrNoFilesProcessed is returned when no files are processed despite paths being provided
+// ErrNoFilesProcessed is returned when paths were provided, files were found,
+// but no files were processed due to filtering
 var ErrNoFilesProcessed = errors.New("no files were processed from the provided paths")
 
 // Config holds all configuration options for file processing and output formatting.
@@ -476,7 +477,8 @@ func ProcessPathWithProcessor(path string, contentBuilder *strings.Builder, conf
 // Returns:
 //   - A string containing the combined formatted content
 //   - Stats struct with information about processed files and content
-//   - An error if the processing fails, including ErrNoFilesProcessed if paths were provided but no files were processed
+//   - An error if the processing fails, including ErrNoFilesProcessed if paths were provided,
+//     files were found (stats.FilesTotal > 0), but no files were processed due to filtering
 func ProcessPaths(paths []string, config *Config, logger *Logger) (string, Stats, error) {
 	contentBuilder := &strings.Builder{}
 	processedFiles := 0
