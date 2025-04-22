@@ -44,7 +44,7 @@
         2. No direct logging of statistics occurs in this function.
     - **Depends-on:** T003
 
-- [ ] **T005 · Feature · P2: implement directory creation in `WriteToFile`**
+- [x] **T005 · Feature · P2: implement directory creation in `WriteToFile`**
     - **Context:** cr-04 Align `WriteToFile` Docs/Implementation (Dir Creation)
     - **Action:**
         1. Edit `WriteToFile` function in `lib/handoff.go`.

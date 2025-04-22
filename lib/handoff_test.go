@@ -597,3 +597,51 @@ func TestProcessProjectWithVerbose(t *testing.T) {
 	// ProcessProject no longer logs statistics directly as that's the caller's responsibility
 	// This test now verifies that the Stats struct is properly populated instead
 }
+
+// TestWriteToFileWithDirectoryCreation tests that WriteToFile creates parent directories
+func TestWriteToFileWithDirectoryCreation(t *testing.T) {
+	// Create a temporary base directory for testing
+	tmpDir, err := os.MkdirTemp("", "handoff-writetofile-test-")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer func() {
+		if cleanErr := os.RemoveAll(tmpDir); cleanErr != nil {
+			t.Logf("Failed to clean up temp directory: %v", cleanErr)
+		}
+	}()
+
+	// Create a nested path that doesn't exist yet
+	nestedDirPath := filepath.Join(tmpDir, "level1", "level2", "level3")
+	filePath := filepath.Join(nestedDirPath, "test.txt")
+	
+	// Content to write
+	content := "This is test content for directory creation"
+	
+	// Write to the file with non-existent directories
+	err = WriteToFile(content, filePath)
+	if err != nil {
+		t.Errorf("WriteToFile() failed with nested directories: %v", err)
+	}
+	
+	// Verify the file was created with the correct content
+	readContent, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Errorf("Failed to read written file: %v", err)
+	}
+	
+	if string(readContent) != content {
+		t.Errorf("Written content doesn't match expected. Got %q, want %q", string(readContent), content)
+	}
+	
+	// Verify all parent directories were created
+	for _, dir := range []string{
+		filepath.Join(tmpDir, "level1"),
+		filepath.Join(tmpDir, "level1", "level2"),
+		filepath.Join(tmpDir, "level1", "level2", "level3"),
+	} {
+		if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+			t.Errorf("Parent directory %s was not created or is not a directory", dir)
+		}
+	}
+}

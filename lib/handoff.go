@@ -616,13 +616,22 @@ func ProcessProject(paths []string, config *Config) (string, Stats, error) {
 // WriteToFile writes the content to a file at the specified path.
 // This is a convenience function for saving the output of ProcessProject
 // directly to a file. The file is created with 0644 permissions.
+// Parent directories are automatically created if they don't exist.
 //
 // Parameters:
 //   - content: The content to write to the file
 //   - filePath: The path where the file should be created
 //
 // Returns:
-//   - An error if the file cannot be written (e.g., due to permissions or path issues)
+//   - An error if the file cannot be written (e.g., due to directory creation
+//     failure, permissions issues, or other I/O errors)
 func WriteToFile(content, filePath string) error {
+	// Create parent directories if they don't exist
+	dirPath := filepath.Dir(filePath)
+	if err := os.MkdirAll(dirPath, 0755); err != nil {
+		return fmt.Errorf("failed to create parent directories: %w", err)
+	}
+	
+	// Write the file
 	return os.WriteFile(filePath, []byte(content), 0644)
 }
