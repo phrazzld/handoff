@@ -73,7 +73,7 @@
         3. Existing tests pass
     - **Depends-on:** none
 
-- [ ] **T007 · Refactor · P3: Improve error message in resolveOutputPath**
+- [x] **T007 · Refactor · P3: Improve error message in resolveOutputPath**
     - **Context:** Error messages lack context about the path being processed.
     - **Action:**
         1. Update the error returned for empty path to be more specific

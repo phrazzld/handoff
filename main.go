@@ -90,12 +90,12 @@ func copyToClipboard(text string) error {
 // It returns the absolute path and any error encountered.
 func resolveOutputPath(path string) (string, error) {
 	if path == "" {
-		return "", fmt.Errorf("output path is empty")
+		return "", fmt.Errorf("output path cannot be empty")
 	}
 
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return "", fmt.Errorf("failed to determine absolute path: %w", err)
+		return "", fmt.Errorf("failed to determine absolute path for %q: %w", path, err)
 	}
 
 	return absPath, nil
