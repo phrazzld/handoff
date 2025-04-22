@@ -134,7 +134,7 @@
 
 ## CI Improvements
 
-- [ ] **T015 · Feature · P2: create Go coverage checker tool**
+- [x] **T015 · Feature · P2: create Go coverage checker tool**
     - **Context:** cr-02 Replace Brittle CI Shell Script - Steps 1-3
     - **Action:**
         1. Create directory `tools/coverage-check`.
