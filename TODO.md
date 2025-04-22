@@ -155,7 +155,7 @@
         2. CI passes/fails correctly based on coverage thresholds.
     - **Depends-on:** T015
 
-- [ ] **T017 · CI · P3: update Go version in CI workflow**
+- [x] **T017 · CI · P3: update Go version in CI workflow**
     - **Context:** cr-10 Update Go Version in CI Workflow
     - **Action:**
         1. Edit `.github/workflows/test-coverage.yml` to set go-version to `1.22.3`.
