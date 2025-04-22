@@ -669,13 +669,13 @@ func TestProcessProject_NoFilesProcessed(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	// Manually set GitAvailable to false to ensure we use filepath.Walk
+	// Manually set gitAvailable to false to ensure we use filepath.Walk
 	// which will count the files properly for this test
-	originalGitAvailable := GitAvailable
-	GitAvailable = false
+	originalGitAvailable := gitAvailable
+	gitAvailable = false
 	defer func() {
 		// Restore the original value
-		GitAvailable = originalGitAvailable
+		gitAvailable = originalGitAvailable
 	}()
 
 	// Create config that will exclude the file

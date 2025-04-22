@@ -140,14 +140,14 @@ type Stats struct {
 	Tokens int
 }
 
-// GitAvailable indicates whether the git command is available on the system.
-// This variable is set during package initialization and can be used
+// gitAvailable indicates whether the git command is available on the system.
+// This variable is set during package initialization and is used internally
 // to determine if Git functionality (like respecting .gitignore rules) can be used.
-var GitAvailable bool
+var gitAvailable bool
 
 func init() {
 	_, err := exec.LookPath("git")
-	GitAvailable = err == nil
+	gitAvailable = err == nil
 }
 
 // ProcessConfig processes the string-based Include, Exclude, and ExcludeNamesStr fields
@@ -187,7 +187,7 @@ func (c *Config) ProcessConfig() {
 
 // isGitIgnored checks if a file is gitignored or hidden (internal helper).
 func isGitIgnored(file string) bool {
-	if !GitAvailable {
+	if !gitAvailable {
 		return strings.HasPrefix(filepath.Base(file), ".")
 	}
 	dir := filepath.Dir(file)
@@ -208,7 +208,7 @@ func isGitIgnored(file string) bool {
 
 // getGitFiles retrieves files from a directory using Git's ls-files command (internal helper)
 func getGitFiles(dir string) ([]string, error) {
-	if !GitAvailable {
+	if !gitAvailable {
 		return nil, fmt.Errorf("git not available")
 	}
 
@@ -260,7 +260,7 @@ func getFilesWithFilepathWalk(dir string) ([]string, error) {
 // It tries to use Git first and falls back to filepath.Walk if Git is not available
 // or the directory is not a Git repository. (internal helper)
 func getFilesFromDir(dir string) ([]string, error) {
-	if GitAvailable {
+	if gitAvailable {
 		files, err := getGitFiles(dir)
 		if err == nil {
 			return files, nil

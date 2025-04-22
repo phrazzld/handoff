@@ -62,7 +62,7 @@
 
 ## Code Quality Improvements
 
-- [ ] **T006 · Refactor · P3: Make GitAvailable variable package-internal**
+- [x] **T006 · Refactor · P3: Make GitAvailable variable package-internal**
     - **Context:** The variable is exported but appears to be for internal use only.
     - **Action:**
         1. Change `var GitAvailable bool` to `var gitAvailable bool` in `lib/handoff.go`
