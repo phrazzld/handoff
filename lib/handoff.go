@@ -559,7 +559,19 @@ func WrapInContext(content string) string {
 	return "<context>\n" + content + "</context>"
 }
 
-// estimateTokenCount counts tokens by tracking transitions between whitespace and non-whitespace characters (internal helper)
+// estimateTokenCount provides a simple approximation of token count in text.
+// This is an internal helper function that uses a basic whitespace-based approach:
+//  - Counts transitions from non-whitespace sequences to whitespace
+//  - Treats any continuous sequence of non-whitespace characters as one token
+//  - Adds a final count if text ends with non-whitespace characters
+//
+// Note that this method:
+//  - Is significantly less sophisticated than actual LLM tokenizers
+//  - Doesn't account for subword tokenization used by most modern LLMs
+//  - May undercount tokens for punctuation that would be separate tokens in LLMs
+//  - May overcount for common words that LLMs represent as single tokens
+//  - Is intended for rough estimation purposes only, with accuracy varying
+//    by content type and language
 func estimateTokenCount(text string) int {
 	count := 0
 	inToken := false

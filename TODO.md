@@ -125,7 +125,7 @@
         1. Function has clear documentation about its heuristic nature
     - **Depends-on:** none
 
-- [ ] **T012 · Docs · P3: Document heuristic nature of estimateTokenCount**
+- [x] **T012 · Docs · P3: Document heuristic nature of estimateTokenCount**
     - **Context:** Users should understand that token counting is approximate.
     - **Action:**
         1. Add a Go doc comment to the estimateTokenCount function
