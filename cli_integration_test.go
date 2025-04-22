@@ -403,7 +403,41 @@ func TestCLIDryRun(t *testing.T) {
 
 // TestCLIVerboseFlag tests the -verbose flag.
 func TestCLIVerboseFlag(t *testing.T) {
-	t.Skip("Skipping test due to issues with verbose mode")
+	binaryPath := buildBinary(t)
+	tempDir, _ := createTestFiles(t)
+
+	// Create a test output file
+	outputFile := filepath.Join(tempDir, "verbose_output.md")
+
+	// Run with verbose flag
+	_, stderr, err := runCliCommand(t, binaryPath, 
+		"-verbose",
+		"-output="+outputFile, 
+		tempDir)
+
+	if err != nil {
+		t.Fatalf("Failed to run with verbose flag: %v", err)
+	}
+
+	// Verify verbose output messages in stderr
+	verboseMessages := []string{
+		"Processing path:",
+		"Processing file",
+		"Output will be written to:",
+		"Writing content",
+		"Processed files successfully",
+	}
+
+	for _, msg := range verboseMessages {
+		if !strings.Contains(stderr, msg) {
+			t.Errorf("Verbose output missing expected message: %q", msg)
+		}
+	}
+
+	// Check that output file was created
+	if _, err := os.Stat(outputFile); err != nil {
+		t.Errorf("Output file was not created: %v", err)
+	}
 }
 
 // TestCLICustomFormat tests the -format flag.

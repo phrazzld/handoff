@@ -28,7 +28,7 @@
 
 ## Testing Improvements
 
-- [ ] **T003 · Test · P1: Enable and implement TestCLIVerboseFlag**
+- [x] **T003 · Test · P1: Enable and implement TestCLIVerboseFlag**
     - **Context:** The integration test for verbose output is currently skipped and needs implementation.
     - **Action:**
         1. Remove the `t.Skip()` line from `TestCLIVerboseFlag` in `cli_integration_test.go`
