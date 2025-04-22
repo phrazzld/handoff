@@ -65,7 +65,7 @@
         1. Test passes, showing `WriteToFile` creates required directories.
     - **Depends-on:** T005
 
-- [ ] **T007 · Docs · P2: remove examples using unexported functions from README**
+- [x] **T007 · Docs · P2: remove examples using unexported functions from README**
     - **Context:** cr-06 Remove/Update Doc Examples Referencing Unexported Functions
     - **Action:**
         1. Edit `lib/README.md`.

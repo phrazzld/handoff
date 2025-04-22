@@ -43,7 +43,7 @@ func main() {
 	config.ProcessConfig() // This converts the string settings into slices
 
 	// Process project files
-	content, err := lib.ProcessProject([]string{"./my-project"}, config)
+	content, stats, err := lib.ProcessProject([]string{"./my-project"}, config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error processing project: %v\n", err)
 		os.Exit(1)
@@ -55,10 +55,11 @@ func main() {
 		os.Exit(1)
 	}
 	
-	// Get statistics about the processed content
-	chars, lines, tokens := lib.CalculateStatistics(content)
+	// Use the statistics returned from ProcessProject
 	fmt.Printf("Generated content with %d characters, %d lines, and approximately %d tokens\n", 
-		chars, lines, tokens)
+		stats.Chars, stats.Lines, stats.Tokens)
+	fmt.Printf("Processed %d out of %d total files\n", 
+		stats.FilesProcessed, stats.FilesTotal)
 }
 ```
 
@@ -69,16 +70,17 @@ The library provides several key functions:
 ### ProcessProject
 
 ```go
-func ProcessProject(paths []string, config *Config) (string, error)
+func ProcessProject(paths []string, config *Config) (string, Stats, error)
 ```
 
-The main function that processes one or more files or directories and returns their formatted content.
+The main function that processes one or more files or directories and returns their formatted content along with statistics.
 
 - **Parameters:**
   - `paths []string`: File or directory paths to process
   - `config *Config`: Configuration options for processing
 - **Returns:**
   - `string`: Formatted content from all processed files
+  - `Stats`: Statistics about processed files and content
   - `error`: Any error encountered during processing
 - **Error handling:**
   - Returns errors for inaccessible paths or problems reading files
@@ -99,7 +101,7 @@ Utility to write content to a file.
   - `error`: Any error encountered while writing
 - **Notes:**
   - Creates parent directories if they don't exist
-  - Returns an error if the file already exists (use the CLI with `-force` for overwriting)
+  - Will overwrite existing files without warning
 
 ### CalculateStatistics
 
@@ -194,30 +196,33 @@ func main() {
 	defaultConfig := lib.NewConfig()
 	defaultConfig.ProcessConfig()
 	
-	content1, err := lib.ProcessProject([]string{"./src"}, defaultConfig)
+	content1, stats1, err := lib.ProcessProject([]string{"./src"}, defaultConfig)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}
+	fmt.Printf("Default config: processed %d files\n", stats1.FilesProcessed)
 	
 	// Example 2: Include only specific file types
 	codeConfig := lib.NewConfig()
 	codeConfig.Include = ".go,.ts,.js"
 	codeConfig.ProcessConfig()
 	
-	content2, err := lib.ProcessProject([]string{"./src"}, codeConfig)
+	content2, stats2, err := lib.ProcessProject([]string{"./src"}, codeConfig)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}
+	fmt.Printf("Code files only: processed %d files\n", stats2.FilesProcessed)
 	
 	// Example 3: Custom format
 	markdownConfig := lib.NewConfig()
 	markdownConfig.Format = "## {path}\n\n```go\n{content}\n```\n\n"
 	markdownConfig.ProcessConfig()
 	
-	content3, err := lib.ProcessProject([]string{"./main.go"}, markdownConfig)
+	content3, stats3, err := lib.ProcessProject([]string{"./main.go"}, markdownConfig)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}
+	fmt.Printf("Custom format: processed %d lines\n", stats3.Lines)
 	
 	// Write results to separate files
 	lib.WriteToFile(content1, "all_files.md")
@@ -240,7 +245,7 @@ func processMultiplePaths() {
 		"./README.md",
 	}
 	
-	content, err := lib.ProcessProject(paths, config)
+	content, stats, err := lib.ProcessProject(paths, config)
 	if err != nil {
 		// Still check the content - ProcessProject may return partial results
 		// even if some files failed to process
@@ -251,9 +256,10 @@ func processMultiplePaths() {
 		fmt.Printf("Warning: Some files could not be processed: %v\n", err)
 	}
 	
-	// Get statistics
-	chars, lines, tokens := lib.CalculateStatistics(content)
-	fmt.Printf("Processed %d lines (%d chars, ~%d tokens)\n", lines, chars, tokens)
+	// Use the statistics returned from ProcessProject
+	fmt.Printf("Processed %d/%d files\n", stats.FilesProcessed, stats.FilesTotal)
+	fmt.Printf("Content has %d lines (%d chars, ~%d tokens)\n", 
+		stats.Lines, stats.Chars, stats.Tokens)
 }
 ```
 
@@ -263,93 +269,83 @@ For a complete example of using this library with Google's Gemini API, see `exam
 
 ## Advanced Usage
 
-For advanced use cases, you can access lower-level functions to implement custom processing logic:
+For advanced use cases, the library provides a few additional exported functions and types that can be useful for custom workflows:
 
-### GetFilesFromDir
+### ProcessorFunc Type
 
 ```go
-func GetFilesFromDir(dir string) ([]string, error)
+type ProcessorFunc func(filePath string, content []byte) string
 ```
 
-Gets a list of files from a directory, respecting Git ignore rules if applicable.
+The `ProcessorFunc` type represents a function that can process a file's content. This is the signature for custom processors that can be used with the library's internal processing mechanisms. While you can't directly use this with the exported API currently, understanding this signature is helpful if you're implementing your own file processing logic.
+
+### Logger
 
 ```go
-// Example: Get files and process them individually
-files, err := lib.GetFilesFromDir("./src")
+type Logger struct {
+    // Unexported fields
+}
+
+func NewLogger(verbose bool) *Logger
+```
+
+The library provides a simple logger type for controlling output verbosity. While primarily used internally, it's available if you need consistent logging.
+
+```go
+// Create a new logger with verbose output enabled
+logger := lib.NewLogger(true) 
+
+// Use the logger methods
+logger.Info("Processing started")
+logger.Verbose("Detailed information that only shows in verbose mode")
+logger.Warn("Warning message")
+logger.Error("Error message")
+```
+
+### Stats Struct
+
+```go
+type Stats struct {
+    FilesProcessed int
+    FilesTotal int
+    Lines int
+    Chars int
+    Tokens int
+}
+```
+
+The `Stats` struct provides detailed information about processed content. It's returned by `ProcessProject` and contains metrics about the files and content processed.
+
+```go
+// Get content and stats from processing
+content, stats, err := lib.ProcessProject(paths, config)
 if err != nil {
-    return err
+    // Handle error
 }
 
-for _, file := range files {
-    // Custom processing logic for each file
-    fmt.Println("Processing:", file)
-}
+// Use the stats in your application
+fmt.Printf("Processed %d/%d files\n", stats.FilesProcessed, stats.FilesTotal)
+fmt.Printf("Content has %d lines, %d characters, and approximately %d tokens\n", 
+    stats.Lines, stats.Chars, stats.Tokens)
 ```
 
-### ShouldProcess
+### WrapInContext
 
 ```go
-func ShouldProcess(file string, config *Config) bool
+func WrapInContext(content string) string
 ```
 
-Determines if a file should be processed based on configuration filters.
+Utility function to wrap content in context tags, which can be useful for formatting output for LLMs or other processors.
 
 ```go
-// Example: Custom file filtering
-files, _ := lib.GetFilesFromDir("./")
-config := lib.NewConfig()
-config.Include = ".md"
-config.ProcessConfig()
-
-for _, file := range files {
-    if lib.ShouldProcess(file, config) {
-        fmt.Println("Will process:", file)
-    } else {
-        fmt.Println("Will skip:", file)
-    }
-}
-```
-
-### ProcessFile
-
-```go
-func ProcessFile(filePath string, logger *Logger, config *Config, processor ProcessorFunc) string
-```
-
-Processes a single file with a custom processor function.
-
-```go
-// Example: Custom file processing
-logger := lib.NewLogger(true)
-config := lib.NewConfig()
-config.ProcessConfig()
-
-// Define a custom processor function
-processor := func(filePath string, content []byte) string {
-    // Custom content transformation
-    return fmt.Sprintf("PROCESSED: %s\n%s", filePath, string(content))
-}
-
-result := lib.ProcessFile("./main.go", logger, config, processor)
-fmt.Println(result)
-```
-
-### IsBinaryFile
-
-```go
-func IsBinaryFile(content []byte) bool
-```
-
-Determines if file content appears to be binary.
-
-```go
-// Example: Check if a file is binary
-data, _ := os.ReadFile("./some-file")
-if lib.IsBinaryFile(data) {
-    fmt.Println("This is a binary file")
-} else {
-    fmt.Println("This is a text file")
-}
+// Wrap some content in context tags
+rawContent := "Some content to be wrapped"
+wrappedContent := lib.WrapInContext(rawContent)
+fmt.Println(wrappedContent)
+// Output:
+// <context>
+// Some content to be wrapped
+// </context>
 ```
 
 ## Development
