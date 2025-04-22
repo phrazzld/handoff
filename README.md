@@ -32,7 +32,7 @@ Handoff is both a command-line tool and a Go library for collecting and formatti
 ## Installation
 
 ### Prerequisites
-- Go 1.16 or higher
+- Go 1.22.3 or higher
 
 ### As a CLI Tool
 
