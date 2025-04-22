@@ -115,6 +115,26 @@ func (l *Logger) Verbose(format string, args ...interface{}) {
 	}
 }
 
+// Stats holds statistics about processed files and content.
+// It's returned by file processing functions to provide information
+// about the operation results without relying on logging.
+type Stats struct {
+	// FilesProcessed is the number of files successfully processed
+	FilesProcessed int
+
+	// FilesTotal is the total number of candidate files found before filtering
+	FilesTotal int
+	
+	// Lines is the number of lines in the processed content
+	Lines int
+	
+	// Chars is the number of characters in the processed content
+	Chars int
+	
+	// Tokens is an estimated count of tokens in the processed content
+	Tokens int
+}
+
 // GitAvailable indicates whether the git command is available on the system.
 // This variable is set during package initialization and can be used
 // to determine if Git functionality (like respecting .gitignore rules) can be used.

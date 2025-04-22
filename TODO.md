@@ -13,7 +13,7 @@
         2. Example code is valid Go that would compile if used.
     - **Depends-on:** none
 
-- [ ] **T002 · Refactor · P1: define Stats struct in library**
+- [x] **T002 · Refactor · P1: define Stats struct in library**
     - **Context:** cr-07 Refactor `ProcessProject` to Return Stats, Not Log - Step 1
     - **Action:**
         1. Add `type Stats struct { FilesProcessed, FilesTotal, Lines, Chars, Tokens int }` to `lib/handoff.go`.
