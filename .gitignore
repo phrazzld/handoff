@@ -36,7 +36,7 @@ Thumbs.db
 # Project specific
 CONTEXT.md
 architect_output/
-docs/
+docs/prompts/
 CODE_REVIEW.md
 PLAN.md
 tools/coverage-check/coverage-check*

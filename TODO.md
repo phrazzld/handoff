@@ -182,7 +182,7 @@
         2. Examples demonstrate the functional options pattern
     - **Depends-on:** [T005, T007, T009]
 
-- [ ] **T016 · Chore · P2: update lib/doc.go examples for API changes**
+- [x] **T016 · Chore · P2: update lib/doc.go examples for API changes**
     - **Context:** Examples in package documentation need updating
     - **Action:**
         1. Update all Go code examples in lib/doc.go
