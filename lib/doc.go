@@ -38,27 +38,26 @@
 //	// Use the content with an AI assistant or save to a file
 //	handoff.WriteToFile(content, "output.md", true)
 //
-// # Advanced Usage
+// # Customization Options
 //
-// For more control over the processing, the library provides lower-level functions
-// that can be combined as needed:
+// The library offers several ways to customize the behavior through configuration options:
 //
-//	config := handoff.NewConfig()
-//	config.ProcessConfig()
-//	logger := handoff.NewLogger(true) // Enable verbose logging
+//	// Create default configuration with custom options
+//	config := handoff.NewConfig(
+//	    handoff.WithInclude(".go,.md"),         // Only include Go and Markdown files
+//	    handoff.WithExclude(".min.js"),         // Exclude minified JavaScript
+//	    handoff.WithExcludeNames("go.sum"),     // Skip specific files by name
+//	    handoff.WithVerbose(true),              // Enable verbose logging
+//	    handoff.WithFormat("## {path}\n{content}\n\n"), // Custom output format
+//	)
 //
-//	// Create a custom processor function
-//	processor := func(file string, content []byte) string {
-//	    return fmt.Sprintf("File: %s\n%s\n---\n", file, string(content))
-//	}
+//	// Process files and get formatted content
+//	content, stats, err := handoff.ProcessProject([]string{"./src", "README.md"}, config)
 //
-//	builder := &strings.Builder{}
-//	for _, path := range paths {
-//	    handoff.ProcessPathWithProcessor(path, builder, config, logger, processor)
-//	}
-//
-//	// Get and use the result
-//	result := builder.String()
+//	// Use stats to report information about the processed content
+//	fmt.Printf("Processed %d/%d files\n", stats.FilesProcessed, stats.FilesTotal)
+//	fmt.Printf("Total content: %d lines, %d chars, ~%d tokens\n", 
+//	    stats.Lines, stats.Chars, stats.Tokens)
 //
 // The package is designed to be flexible yet simple to use, making it suitable
 // for a variety of scenarios where code needs to be collected and shared.

@@ -213,17 +213,17 @@ func TestProcessFile(t *testing.T) {
 	logger := NewLogger(false)
 
 	// Test processing a valid file
-	result := ProcessFile(filePath, logger, config, processor)
+	result := processFile(filePath, logger, config, processor)
 	expected := "PROCESSED: " + filePath + "\n" + fileContent
 	if result != expected {
-		t.Errorf("ProcessFile() = %q, want %q", result, expected)
+		t.Errorf("processFile() = %q, want %q", result, expected)
 	}
 
 	// Test file that doesn't exist
 	nonExistentPath := filepath.Join(tmpDir, "non-existent")
-	result = ProcessFile(nonExistentPath, logger, config, processor)
+	result = processFile(nonExistentPath, logger, config, processor)
 	if result != "" {
-		t.Errorf("ProcessFile() for non-existent file returned %q, want empty string", result)
+		t.Errorf("processFile() for non-existent file returned %q, want empty string", result)
 	}
 
 	// Test binary file (simulated using isBinaryFile mock)
@@ -235,18 +235,18 @@ func TestProcessFile(t *testing.T) {
 	}
 
 	// Test processing a binary file
-	result = ProcessFile(binaryFilePath, logger, config, processor)
+	result = processFile(binaryFilePath, logger, config, processor)
 	if result != "" {
-		t.Errorf("ProcessFile() for binary file returned %q, want empty string", result)
+		t.Errorf("processFile() for binary file returned %q, want empty string", result)
 	}
 
 	// Test with exclusion config
 	configWithExclude := &Config{
 		excludeExts: []string{".txt"},
 	}
-	result = ProcessFile(filePath, logger, configWithExclude, processor)
+	result = processFile(filePath, logger, configWithExclude, processor)
 	if result != "" {
-		t.Errorf("ProcessFile() for excluded extension returned %q, want empty string", result)
+		t.Errorf("processFile() for excluded extension returned %q, want empty string", result)
 	}
 }
 
@@ -686,7 +686,7 @@ func TestProcessProjectWithVerbose(t *testing.T) {
 	// This test now verifies that the Stats struct is properly populated instead
 }
 
-// TestProcessPaths_ErrNoFilesProcessed tests the error handling in ProcessPaths when no files are processed
+// TestProcessPaths_ErrNoFilesProcessed tests the error handling in processPaths when no files are processed
 func TestProcessPaths_ErrNoFilesProcessed(t *testing.T) {
 	// Create a temporary directory
 	tmpDir, err := os.MkdirTemp("", "handoff-nofiles-test-")
@@ -705,8 +705,8 @@ func TestProcessPaths_ErrNoFilesProcessed(t *testing.T) {
 	config := NewConfig(WithExclude(".txt")) // Exclude the .txt file we created
 	logger := NewLogger(false)
 
-	// Call ProcessPaths
-	_, stats, err := ProcessPaths([]string{tmpDir}, config, logger)
+	// Call processPaths
+	_, stats, err := processPaths([]string{tmpDir}, config, logger)
 
 	// Assert that we get the expected error
 	if !errors.Is(err, ErrNoFilesProcessed) {

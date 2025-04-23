@@ -424,7 +424,7 @@ func shouldProcess(file string, config *Config) bool {
 	return true
 }
 
-// ProcessFile processes a single file with the given processor function and configuration.
+// processFile processes a single file with the given processor function and configuration.
 // It applies various filters (gitignore, extension/name filters, binary detection) and
 // passes the valid file's content to the processor function to generate formatted output.
 //
@@ -438,7 +438,7 @@ func shouldProcess(file string, config *Config) bool {
 //   - processor: Function to process the file content
 //
 // Returns a formatted string for valid files or an empty string for skipped files.
-func ProcessFile(filePath string, logger *Logger, config *Config, processor ProcessorFunc) string {
+func processFile(filePath string, logger *Logger, config *Config, processor ProcessorFunc) string {
 	// First check if file exists
 	if _, statErr := os.Stat(filePath); statErr != nil {
 		if os.IsNotExist(statErr) {
@@ -481,7 +481,7 @@ func ProcessFile(filePath string, logger *Logger, config *Config, processor Proc
 	return processor(filePath, content)
 }
 
-// ProcessDirectory processes all files in a directory with the given processor and config.
+// processDirectory processes all files in a directory with the given processor and config.
 // It discovers files in the directory (respecting Git's ignore rules if available),
 // filters them according to the provided configuration, and processes each valid file,
 // appending the formatted output to the contentBuilder.
@@ -492,7 +492,7 @@ func ProcessFile(filePath string, logger *Logger, config *Config, processor Proc
 //   - config: Configuration for file filtering and processing
 //   - logger: Logger for status and error messages
 //   - processor: Function to process each file's content
-func ProcessDirectory(dirPath string, contentBuilder *strings.Builder, config *Config, logger *Logger, processor ProcessorFunc) {
+func processDirectory(dirPath string, contentBuilder *strings.Builder, config *Config, logger *Logger, processor ProcessorFunc) {
 	files, err := getFilesFromDir(dirPath)
 	if err != nil {
 		logger.Error("processing directory %s: %v", dirPath, err)
@@ -500,14 +500,14 @@ func ProcessDirectory(dirPath string, contentBuilder *strings.Builder, config *C
 	}
 
 	for _, file := range files {
-		output := ProcessFile(file, logger, config, processor)
+		output := processFile(file, logger, config, processor)
 		if output != "" {
 			contentBuilder.WriteString(output)
 		}
 	}
 }
 
-// ProcessPathWithProcessor processes a single path (file or directory) with a custom processor function.
+// processPathWithProcessor processes a single path (file or directory) with a custom processor function.
 // This is a unified entry point that handles both files and directories, dispatching to the
 // appropriate handler based on the path type. For directories, it processes all contained files
 // recursively. For files, it processes the file directly.
@@ -518,7 +518,7 @@ func ProcessDirectory(dirPath string, contentBuilder *strings.Builder, config *C
 //   - config: Configuration for file filtering and processing
 //   - logger: Logger for status and error messages
 //   - processor: Function to process each file's content
-func ProcessPathWithProcessor(path string, contentBuilder *strings.Builder, config *Config, logger *Logger, processor ProcessorFunc) {
+func processPathWithProcessor(path string, contentBuilder *strings.Builder, config *Config, logger *Logger, processor ProcessorFunc) {
 	info, err := os.Stat(path)
 	if err != nil {
 		// Just log the error and continue with other paths
@@ -527,16 +527,16 @@ func ProcessPathWithProcessor(path string, contentBuilder *strings.Builder, conf
 	}
 
 	if info.IsDir() {
-		ProcessDirectory(path, contentBuilder, config, logger, processor)
+		processDirectory(path, contentBuilder, config, logger, processor)
 	} else {
-		output := ProcessFile(path, logger, config, processor)
+		output := processFile(path, logger, config, processor)
 		if output != "" {
 			contentBuilder.WriteString(output)
 		}
 	}
 }
 
-// ProcessPaths processes multiple file or directory paths according to the configuration.
+// processPaths processes multiple file or directory paths according to the configuration.
 // It creates a customized processor function that tracks progress and formats output
 // using the config's Format template, then processes each path with this processor.
 //
@@ -550,7 +550,7 @@ func ProcessPathWithProcessor(path string, contentBuilder *strings.Builder, conf
 //   - Stats struct with information about processed files and content
 //   - An error if the processing fails, including ErrNoFilesProcessed if paths were provided,
 //     files were found (stats.FilesTotal > 0), but no files were processed due to filtering
-func ProcessPaths(paths []string, config *Config, logger *Logger) (string, Stats, error) {
+func processPaths(paths []string, config *Config, logger *Logger) (string, Stats, error) {
 	contentBuilder := &strings.Builder{}
 	processedFiles := 0
 	totalFiles := 0
@@ -580,7 +580,7 @@ func ProcessPaths(paths []string, config *Config, logger *Logger) (string, Stats
 		}
 
 		// Process the path with our custom processor
-		ProcessPathWithProcessor(path, contentBuilder, config, logger, pathProcessor)
+		processPathWithProcessor(path, contentBuilder, config, logger, pathProcessor)
 	}
 
 	content := contentBuilder.String()
@@ -702,7 +702,7 @@ func ProcessProject(paths []string, config *Config) (string, Stats, error) {
 	}
 
 	// Process paths
-	content, stats, err := ProcessPaths(paths, config, logger)
+	content, stats, err := processPaths(paths, config, logger)
 	if err != nil {
 		return "", Stats{}, err
 	}

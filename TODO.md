@@ -63,7 +63,7 @@
     - **Depends-on:** [T005]
 
 ## API Layering & Consistency
-- [ ] **T007 · Refactor · P2: consolidate API entry point to ProcessProject**
+- [x] **T007 · Refactor · P2: consolidate API entry point to ProcessProject**
     - **Context:** The library exports multiple processing functions with overlapping responsibilities
     - **Action:**
         1. Identify helper functions that should be internal implementation details
