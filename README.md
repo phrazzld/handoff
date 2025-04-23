@@ -116,31 +116,38 @@ import (
 )
 
 func main() {
-	// Create a configuration
-	config := lib.NewConfig()
-	config.Verbose = true
-	config.Exclude = ".exe,.bin,.jpg,.png"
-	config.ExcludeNamesStr = "node_modules,package-lock.json"
-	config.ProcessConfig() // Process string settings into slices
+	// Create a configuration with functional options
+	config := lib.NewConfig(
+		lib.WithVerbose(true),
+		lib.WithExclude(".exe,.bin,.jpg,.png"),
+		lib.WithExcludeNames("node_modules,package-lock.json"),
+	)
+	
+	// Alternatively, use the traditional approach (requires ProcessConfig)
+	// config := lib.NewConfig()
+	// config.Verbose = true
+	// config.Exclude = ".exe,.bin,.jpg,.png"
+	// config.ExcludeNamesStr = "node_modules,package-lock.json"
+	// config.ProcessConfig() // Process string settings into slices
 
 	// Process project files
-	content, err := lib.ProcessProject([]string{"./my-project"}, config)
+	content, stats, err := lib.ProcessProject([]string{"./my-project"}, config)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
 	// Use the content
-	fmt.Println("Character count:", len(content))
+	fmt.Println("Character count:", stats.Chars)
 	
 	// Write to a file
 	if err := lib.WriteToFile(content, "output.md", true); err != nil {
 		fmt.Printf("Error writing to file: %v\n", err)
 	}
 	
-	// Get statistics
-	chars, lines, tokens := lib.CalculateStatistics(content)
-	fmt.Printf("Stats: %d chars, %d lines, ~%d tokens\n", chars, lines, tokens)
+	// Display statistics
+	fmt.Printf("Stats: %d chars, %d lines, ~%d tokens\n", 
+		stats.Chars, stats.Lines, stats.Tokens)
 }
 ```
 

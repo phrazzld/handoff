@@ -16,11 +16,10 @@
 //   - Provides flexible file filtering by extension and name
 //   - Supports custom output formatting with templates
 //   - Calculates and reports statistics about processed content
-//   - Offers both a high-level API for common use cases and more granular control when needed
 //
 // # Basic Usage
 //
-// The primary entry point is the ProcessProject function, which handles everything
+// The main API entry point is the ProcessProject function, which handles everything
 // from file discovery to filtering and formatting:
 //
 //	// Create default configuration and customize as needed
@@ -30,7 +29,7 @@
 //	config.ProcessConfig()              // Process string-based config into slice-based filters
 //
 //	// Process files and get formatted content
-//	content, err := handoff.ProcessProject([]string{"./src", "README.md"}, config)
+//	content, stats, err := handoff.ProcessProject([]string{"./src", "README.md"}, config)
 //	if err != nil {
 //	    log.Fatalf("Error processing project: %v", err)
 //	}
@@ -59,6 +58,6 @@
 //	fmt.Printf("Total content: %d lines, %d chars, ~%d tokens\n", 
 //	    stats.Lines, stats.Chars, stats.Tokens)
 //
-// The package is designed to be flexible yet simple to use, making it suitable
-// for a variety of scenarios where code needs to be collected and shared.
+// The package is designed to be simple to use with a focused API. ProcessProject
+// is the main entry point for all file processing functionality.
 package handoff

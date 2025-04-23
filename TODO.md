@@ -75,7 +75,7 @@
         3. `go test ./...` passes
     - **Depends-on:** none
 
-- [ ] **T008 · Chore · P2: update documentation for consolidated API**
+- [x] **T008 · Chore · P2: update documentation for consolidated API**
     - **Context:** Documentation needs to reflect API changes from T007
     - **Action:**
         1. Update documentation to emphasize `ProcessProject` as the main entry point

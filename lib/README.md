@@ -65,9 +65,9 @@ func main() {
 }
 ```
 
-## Core Functions
+## Core API
 
-The library provides several key functions:
+The library provides a focused API with ProcessProject as the main entry point:
 
 ### ProcessProject
 
@@ -296,17 +296,9 @@ func processMultiplePaths() {
 ```
 
 
-## Advanced Usage
+## Advanced Features
 
-For advanced use cases, the library provides a few additional exported functions and types that can be useful for custom workflows:
-
-### ProcessorFunc Type
-
-```go
-type ProcessorFunc func(filePath string, content []byte) string
-```
-
-The `ProcessorFunc` type represents a function that can process a file's content. This is the signature for custom processors that can be used with the library's internal processing mechanisms. While you can't directly use this with the exported API currently, understanding this signature is helpful if you're implementing your own file processing logic.
+The library includes additional types and utilities to support more complex use cases:
 
 ### Logger
 
