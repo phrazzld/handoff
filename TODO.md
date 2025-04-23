@@ -142,7 +142,7 @@
     - **Depends-on:** none
 
 ## Coverage Tooling
-- [ ] **T014 · Refactor · P1: parse coverage profiles using Go's cover package**
+- [x] **T014 · Refactor · P1: parse coverage profiles using Go's cover package**
     - **Context:** Current coverage tool relies on parsing `go tool cover -func` output
     - **Action:**
         1. Add `golang.org/x/tools/cover` as a dependency

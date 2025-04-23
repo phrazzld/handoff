@@ -8,8 +8,8 @@ A simple Go tool to check if test coverage meets a specified threshold.
 # Check coverage from a file
 coverage-check -file coverage.out -threshold 85.0
 
-# Read coverage output from stdin
-go tool cover -func=coverage.out | coverage-check -threshold 90.0
+# Read coverage profile from stdin
+cat coverage.out | coverage-check -threshold 90.0
 
 # Show detailed output
 coverage-check -file coverage.out -threshold 85.0 -verbose
