@@ -39,3 +39,4 @@ architect_output/
 docs/
 CODE_REVIEW.md
 PLAN.md
+tools/coverage-check/coverage-check*

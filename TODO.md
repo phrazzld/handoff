@@ -10,7 +10,7 @@
         2. The binary file still exists locally but is not tracked by Git
     - **Depends-on:** none
 
-- [ ] **T002 · Chore · P0: ignore binary executable file pattern**
+- [x] **T002 · Chore · P0: ignore binary executable file pattern**
     - **Context:** Prevent binary files from being committed in the future
     - **Action:**
         1. Add the pattern `tools/coverage-check/coverage-check*` to the root `.gitignore` file
