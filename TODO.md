@@ -237,7 +237,7 @@
     - **Depends-on:** none
 
 ## Miscellaneous Cleanup
-- [ ] **T021 · Chore · P3: align Go versions across modules**
+- [x] **T021 · Chore · P3: align Go versions across modules**
     - **Context:** Different modules specify different Go versions
     - **Action:**
         1. Check `go.mod` files in the repository
