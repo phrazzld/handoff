@@ -538,7 +538,8 @@ func processPathWithProcessor(path string, contentBuilder *strings.Builder, conf
 
 // processPaths processes multiple file or directory paths according to the configuration.
 // It creates a customized processor function that tracks progress and formats output
-// using the config's Format template, then processes each path with this processor.
+// using the config's Format template. The function first discovers all files to process
+// upfront, then processes them, avoiding redundant directory scans.
 //
 // Parameters:
 //   - paths: List of file or directory paths to process
@@ -553,34 +554,56 @@ func processPathWithProcessor(path string, contentBuilder *strings.Builder, conf
 func processPaths(paths []string, config *Config, logger *Logger) (string, Stats, error) {
 	contentBuilder := &strings.Builder{}
 	processedFiles := 0
-	totalFiles := 0
-
+	
+	// Discover all files upfront to avoid redundant directory scans
+	var allFiles []string
+	
+	// First, discover all files from all paths
 	for _, path := range paths {
 		logger.Verbose("Processing path: %s", path)
-
-		// Count total files before processing
-		if info, err := os.Stat(path); err == nil && !info.IsDir() {
-			totalFiles++
-		} else if err == nil && info.IsDir() {
-			if files, err := getFilesFromDir(path); err == nil {
-				totalFiles += len(files)
-			}
+		
+		info, err := os.Stat(path)
+		if err != nil {
+			logger.Warn("%v", err)
+			continue
 		}
-
-		// Custom process function with config and progress tracking
-		pathProcessor := func(file string, fileContent []byte) string {
+		
+		if info.IsDir() {
+			files, err := getFilesFromDir(path)
+			if err != nil {
+				logger.Warn("Error getting files from directory %s: %v", path, err)
+				continue
+			}
+			allFiles = append(allFiles, files...)
+		} else {
+			// It's a single file
+			allFiles = append(allFiles, path)
+		}
+	}
+	
+	// Store total file count for stats and progress tracking
+	totalFiles := len(allFiles)
+	logger.Verbose("Found %d total files across all paths", totalFiles)
+	
+	// Process all discovered files
+	for _, file := range allFiles {
+		// Create a processor function that tracks progress
+		processor := func(filepath string, fileContent []byte) string {
 			processedFiles++
-			logger.Verbose("Processing file (%d/%d): %s", processedFiles, totalFiles, file)
-
+			logger.Verbose("Processing file (%d/%d): %s", processedFiles, totalFiles, filepath)
+			
 			// Format the output using the custom format
 			output := config.Format
-			output = strings.ReplaceAll(output, "{path}", file)
+			output = strings.ReplaceAll(output, "{path}", filepath)
 			output = strings.ReplaceAll(output, "{content}", string(fileContent))
 			return output
 		}
-
-		// Process the path with our custom processor
-		processPathWithProcessor(path, contentBuilder, config, logger, pathProcessor)
+		
+		// Process the file directly without rediscovering it
+		output := processFile(file, logger, config, processor)
+		if output != "" {
+			contentBuilder.WriteString(output)
+		}
 	}
 
 	content := contentBuilder.String()

@@ -145,7 +145,7 @@
     - **Depends-on:** [T011]
 
 ## Performance Optimization
-- [ ] **T013 · Refactor · P2: optimize file counting by pre-calculating candidates**
+- [x] **T013 · Refactor · P2: optimize file counting by pre-calculating candidates**
     - **Context:** Current implementation may re-scan directories multiple times
     - **Action:**
         1. Modify `ProcessPaths` to perform file discovery once upfront
