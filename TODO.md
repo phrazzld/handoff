@@ -194,7 +194,7 @@
     - **Depends-on:** [T005, T007, T009]
 
 ## Testing Improvements
-- [ ] **T017 · Test · P2: refactor git availability tests using dependency injection**
+- [x] **T017 · Test · P2: refactor git availability tests using dependency injection**
     - **Context:** Tests checking for git availability modify global state
     - **Action:**
         1. Identify tests interacting with git commands

@@ -206,8 +206,10 @@ func TestProcessFile(t *testing.T) {
 		return fmt.Sprintf("PROCESSED: %s\n%s", file, string(content))
 	}
 
-	// Create a test config
-	config := &Config{}
+	// Create a test config with a mock git client
+	config := &Config{
+		GitClient: NewMockGitClient(false),
+	}
 
 	// Create a logger
 	logger := NewLogger(false)
@@ -243,6 +245,7 @@ func TestProcessFile(t *testing.T) {
 	// Test with exclusion config
 	configWithExclude := &Config{
 		excludeExts: []string{".txt"},
+		GitClient:   NewMockGitClient(false),
 	}
 	result = processFile(filePath, logger, configWithExclude, processor)
 	if result != "" {
@@ -739,17 +742,14 @@ func TestProcessProject_NoFilesProcessed(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	// Manually set gitAvailable to false to ensure we use filepath.Walk
-	// which will count the files properly for this test
-	originalGitAvailable := gitAvailable
-	gitAvailable = false
-	defer func() {
-		// Restore the original value
-		gitAvailable = originalGitAvailable
-	}()
-
+	// Create mock git client that can properly track files
+	mockGit := NewMockGitClient(false) // Git is not available
+	
 	// Create config that will exclude the file using functional options
-	config := NewConfig(WithExclude(".txt")) // Exclude the .txt file we created
+	config := NewConfig(
+		WithExclude(".txt"), // Exclude the .txt file we created
+		WithGitClient(mockGit), // Use our mock client
+	)
 
 	// Call ProcessProject
 	content, stats, err := ProcessProject([]string{tmpDir}, config)

@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -60,6 +59,9 @@ type Config struct {
 	include string
 	exclude string
 	excludeNamesStr string
+	
+	// GitClient is used for git-related operations
+	GitClient GitClient
 }
 
 // NewConfig creates a new Config with default values and applies the given options.
@@ -67,8 +69,9 @@ type Config struct {
 // with file path headers and code fences.
 func NewConfig(opts ...Option) *Config {
 	c := &Config{
-		Verbose: false,
-		Format:  "<{path}>\n```\n{content}\n```\n</{path}>\n\n",
+		Verbose:   false,
+		Format:    "<{path}>\n```\n{content}\n```\n</{path}>\n\n",
+		GitClient: NewRealGitClient(),
 	}
 	
 	// Apply all options
@@ -116,6 +119,15 @@ func WithExcludeNames(excludeNames string) Option {
 	return func(c *Config) {
 		c.excludeNamesStr = excludeNames
 		c.excludeNames = processNames(excludeNames)
+	}
+}
+
+// WithGitClient sets a custom GitClient implementation.
+// This is primarily useful for testing or when you want to provide
+// a specialized git client implementation.
+func WithGitClient(gitClient GitClient) Option {
+	return func(c *Config) {
+		c.GitClient = gitClient
 	}
 }
 
@@ -215,15 +227,9 @@ type Stats struct {
 	Tokens int
 }
 
-// gitAvailable indicates whether the git command is available on the system.
-// This variable is set during package initialization and is used internally
-// to determine if Git functionality (like respecting .gitignore rules) can be used.
-var gitAvailable bool
-
-func init() {
-	_, err := exec.LookPath("git")
-	gitAvailable = err == nil
-}
+// Note: The global gitAvailable variable and its initialization have been replaced
+// with a GitClient interface. This allows for better dependency injection and testing.
+// See git_client.go for the implementation details.
 
 // ProcessConfig is maintained for backward compatibility.
 // It processes the string-based fields in the Config struct and populates
@@ -246,53 +252,27 @@ func (c *Config) ProcessConfig() {
 }
 
 // isGitIgnored checks if a file is gitignored or hidden (internal helper).
-func isGitIgnored(file string) bool {
-	if !gitAvailable {
-		return strings.HasPrefix(filepath.Base(file), ".")
-	}
-	dir := filepath.Dir(file)
-	filename := filepath.Base(file)
-	cmd := exec.Command("git", "-C", dir, "check-ignore", "-q", filename)
-	err := cmd.Run()
-	if err == nil { // Exit code 0: file is ignored
-		return true
-	}
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		if exitErr.ExitCode() == 1 { // Exit code 1: file is not ignored
-			return false
-		}
-	}
-	// Other errors (e.g., not a git repo): fall back to checking if hidden
-	return strings.HasPrefix(filename, ".")
+// It delegates the check to the GitClient implementation in the config.
+func isGitIgnored(file string, config *Config) bool {
+	return config.GitClient.IsGitIgnored(file)
 }
 
 // getGitFiles retrieves files from a directory using Git's ls-files command (internal helper)
-func getGitFiles(dir string) ([]string, error) {
-	if !gitAvailable {
-		return nil, fmt.Errorf("git not available")
-	}
-
-	cmd := exec.Command("git", "-C", dir, "ls-files", "--cached", "--others", "--exclude-standard")
-	output, err := cmd.Output()
+// It delegates the operation to the GitClient implementation in the config.
+func getGitFiles(dir string, config *Config) ([]string, error) {
+	files, err := config.GitClient.GetGitFiles(dir)
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 128 {
-			return nil, fmt.Errorf("not a git repository")
-		}
-		return nil, fmt.Errorf("error running git ls-files: %v", err)
+		return nil, err
 	}
-
-	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-	var files []string
-	for _, line := range lines {
-		if line != "" {
-			filePath := filepath.Join(dir, line)
-			// Check if file still exists before adding it
-			if _, err := os.Stat(filePath); err == nil {
-				files = append(files, filePath)
-			}
+	
+	// Check if files still exist before returning them
+	var existingFiles []string
+	for _, filePath := range files {
+		if _, err := os.Stat(filePath); err == nil {
+			existingFiles = append(existingFiles, filePath)
 		}
 	}
-	return files, nil
+	return existingFiles, nil
 }
 
 // getFilesWithFilepathWalk retrieves files from a directory by walking the filesystem (internal helper)
@@ -319,9 +299,9 @@ func getFilesWithFilepathWalk(dir string) ([]string, error) {
 // getFilesFromDir retrieves all files to process from a directory.
 // It tries to use Git first and falls back to filepath.Walk if Git is not available
 // or the directory is not a Git repository. (internal helper)
-func getFilesFromDir(dir string) ([]string, error) {
-	if gitAvailable {
-		files, err := getGitFiles(dir)
+func getFilesFromDir(dir string, config *Config) ([]string, error) {
+	if config.GitClient.IsAvailable() {
+		files, err := getGitFiles(dir, config)
 		if err == nil {
 			return files, nil
 		}
@@ -451,7 +431,7 @@ func processFile(filePath string, logger *Logger, config *Config, processor Proc
 	}
 
 	// Check if file is gitignored
-	if isGitIgnored(filePath) {
+	if isGitIgnored(filePath, config) {
 		logger.Verbose("skipping gitignored file: %s", filePath)
 		return ""
 	}
@@ -493,7 +473,7 @@ func processFile(filePath string, logger *Logger, config *Config, processor Proc
 //   - logger: Logger for status and error messages
 //   - processor: Function to process each file's content
 func processDirectory(dirPath string, contentBuilder *strings.Builder, config *Config, logger *Logger, processor ProcessorFunc) {
-	files, err := getFilesFromDir(dirPath)
+	files, err := getFilesFromDir(dirPath, config)
 	if err != nil {
 		logger.Error("processing directory %s: %v", dirPath, err)
 		return
@@ -569,7 +549,7 @@ func processPaths(paths []string, config *Config, logger *Logger) (string, Stats
 		}
 		
 		if info.IsDir() {
-			files, err := getFilesFromDir(path)
+			files, err := getFilesFromDir(path, config)
 			if err != nil {
 				logger.Warn("Error getting files from directory %s: %v", path, err)
 				continue
