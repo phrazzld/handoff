@@ -39,7 +39,7 @@
         2. (If yes) A separate plan/ticket is created for the history rewrite
     - **Depends-on:** [T001, T002, T003]
 
-- [ ] **T025 · Chore · P3: implement git history rewrite to remove binary**
+- [x] **T025 · Chore · P3: implement git history rewrite to remove binary**
     - **Context:** Repository size optimization as recommended in T004
     - **Action:**
         1. Notify all contributors about the planned history rewrite
