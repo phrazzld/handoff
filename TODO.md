@@ -101,7 +101,7 @@
         2. Documentation for unexported helpers is removed or marked internal
     - **Depends-on:** [T007]
 
-- [ ] **T009 · Refactor · P2: unexport ProcessFile and related low-level functions**
+- [x] **T009 · Refactor · P2: unexport ProcessFile and related low-level functions**
     - **Context:** `ProcessFile` is exported while related functions aren't, creating inconsistency
     - **Action:**
         1. Unexport the `ProcessFile` function

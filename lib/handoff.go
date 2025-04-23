@@ -151,7 +151,7 @@ func processNames(names string) []string {
 
 // ProcessorFunc is a function type that processes a file's content and returns formatted output.
 // It receives the file path and raw content and should return the processed content as a string.
-// This type is used for custom file processing in functions like ProcessFile and ProcessPathWithProcessor.
+// This type is used for custom file processing in internal functions like processFile and processPathWithProcessor.
 type ProcessorFunc func(filePath string, content []byte) string
 
 // Logger provides a simple logging interface with different log levels.
