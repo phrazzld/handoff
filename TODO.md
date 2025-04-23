@@ -256,7 +256,7 @@
         1. `.gitignore` file contains only relevant patterns
     - **Depends-on:** [T002]
 
-- [ ] **T023 · Chore · P3: update CI workflow to use standard Go version format**
+- [x] **T023 · Chore · P3: update CI workflow to use standard Go version format**
     - **Context:** CI configuration may use non-standard Go version format
     - **Action:**
         1. Review CI configuration files
