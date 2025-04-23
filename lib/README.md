@@ -297,9 +297,9 @@ func processMultiplePaths() {
 ```
 
 
-## Advanced Features
+## Additional API Components
 
-The library includes additional types and utilities to support more complex use cases:
+The library exports a few additional types and utilities beyond the core functions to support more complex use cases:
 
 ### Logger
 

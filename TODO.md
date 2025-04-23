@@ -112,7 +112,7 @@
         3. `go test ./...` passes
     - **Depends-on:** [T007]
 
-- [ ] **T010 · Chore · P2: update documentation for consistent API surface**
+- [x] **T010 · Chore · P2: update documentation for consistent API surface**
     - **Context:** Documentation needs to reflect API changes from T009
     - **Action:**
         1. Remove documentation for `ProcessFile` and any other functions unexported in T009
