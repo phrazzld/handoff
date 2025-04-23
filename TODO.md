@@ -118,7 +118,7 @@
         3. Documentation is updated
     - **Depends-on:** none
 
-- [ ] **T012 · Refactor · P1: update CLI to use WriteToFile overwrite control**
+- [x] **T012 · Refactor · P1: update CLI to use WriteToFile overwrite control**
     - **Context:** CLI needs to pass appropriate overwrite flag to WriteToFile
     - **Action:**
         1. Locate CLI code calling `WriteToFile`
