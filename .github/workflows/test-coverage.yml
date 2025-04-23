@@ -26,6 +26,7 @@ jobs:
         run: |
           cd tools/coverage-check
           go build -o coverage-check
+          chmod +x coverage-check
 
       - name: Check coverage threshold
         run: |

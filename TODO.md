@@ -19,7 +19,7 @@
         2. `git status --ignored` shows the local binary matching the ignore rule
     - **Depends-on:** none
 
-- [ ] **T003 · Chore · P0: build coverage-check binary in CI**
+- [x] **T003 · Chore · P0: build coverage-check binary in CI**
     - **Context:** Ensure CI workflow can still use the coverage-check tool
     - **Action:**
         1. Identify the CI workflow step(s) that use `tools/coverage-check/coverage-check`
