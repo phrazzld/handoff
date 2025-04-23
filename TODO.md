@@ -266,7 +266,7 @@
         2. CI pipeline runs successfully with the updated format
     - **Depends-on:** none
 
-- [ ] **T024 · Chore · P3: update BACKLOG.md regarding verbose flag status**
+- [x] **T024 · Chore · P3: update BACKLOG.md regarding verbose flag status**
     - **Context:** BACKLOG.md has contradictory information about verbose flag
     - **Action:**
         1. Edit `BACKLOG.md`
