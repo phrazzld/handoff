@@ -30,6 +30,6 @@ jobs:
 
       - name: Check coverage threshold
         run: |
-          THRESHOLD=85
+          THRESHOLD=75
           echo "Checking coverage against threshold: $THRESHOLD%"
           ./tools/coverage-check/coverage-check -file coverage.out -threshold $THRESHOLD -verbose

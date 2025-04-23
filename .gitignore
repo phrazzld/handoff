@@ -77,6 +77,7 @@ architect_output/
 docs/prompts/
 # Code review notes
 CODE_REVIEW.md
+CI_FAILURE_AUDIT.md
 # Project planning document
 PLAN.md
 # Task plan documents
