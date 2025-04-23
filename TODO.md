@@ -106,7 +106,7 @@
     - **Depends-on:** [T009]
 
 ## File Writing
-- [ ] **T011 · Feature · P1: add overwrite control to WriteToFile**
+- [x] **T011 · Feature · P1: add overwrite control to WriteToFile**
     - **Context:** WriteToFile currently always overwrites existing files
     - **Action:**
         1. Change signature to `WriteToFile(content, path string, overwrite bool) error`

@@ -36,7 +36,7 @@
 //	}
 //
 //	// Use the content with an AI assistant or save to a file
-//	handoff.WriteToFile(content, "output.md")
+//	handoff.WriteToFile(content, "output.md", true)
 //
 // # Advanced Usage
 //

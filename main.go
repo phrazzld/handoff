@@ -218,7 +218,7 @@ func main() {
 	} else if outputFile != "" {
 		// Medium precedence: write to file
 		logger.Verbose("Writing content (%d bytes) to file: %s", len(formattedContent), absOutputPath)
-		if err := handoff.WriteToFile(formattedContent, absOutputPath); err != nil {
+		if err := handoff.WriteToFile(formattedContent, absOutputPath, force); err != nil {
 			logger.Error("Failed to write to file %s: %v", absOutputPath, err)
 			os.Exit(1)
 		}

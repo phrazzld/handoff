@@ -35,6 +35,9 @@ import (
 // but no files were processed due to filtering
 var ErrNoFilesProcessed = errors.New("no files were processed from the provided paths")
 
+// ErrFileExists is returned when WriteToFile is called with overwrite=false and the file already exists
+var ErrFileExists = errors.New("file already exists and overwrite is not allowed")
+
 // Option is a function that configures a Config instance.
 // It implements the functional options pattern for configuration.
 type Option func(*Config)
@@ -715,14 +718,31 @@ func ProcessProject(paths []string, config *Config) (string, Stats, error) {
 // directly to a file. The file is created with 0644 permissions.
 // Parent directories are automatically created if they don't exist.
 //
+// By default, it will not overwrite existing files unless overwrite is set to true.
+// If the file exists and overwrite is false, it returns ErrFileExists.
+//
 // Parameters:
 //   - content: The content to write to the file
 //   - filePath: The path where the file should be created
+//   - overwrite: If true, existing files will be overwritten; if false, returns an error when the file exists
 //
 // Returns:
-//   - An error if the file cannot be written (e.g., due to directory creation
-//     failure, permissions issues, or other I/O errors)
-func WriteToFile(content, filePath string) error {
+//   - An error if the file cannot be written (e.g., due to directory creation failure,
+//     permissions issues, file already exists with overwrite=false, or other I/O errors)
+func WriteToFile(content, filePath string, overwrite bool) error {
+	// Check if file exists and handle overwrite flag
+	if !overwrite {
+		_, err := os.Stat(filePath)
+		if err == nil {
+			// File exists and overwrite is false, return error
+			return fmt.Errorf("%w: %s", ErrFileExists, filePath)
+		} else if !os.IsNotExist(err) {
+			// Some other error occurred
+			return fmt.Errorf("failed to check if file %q exists: %w", filePath, err)
+		}
+		// File doesn't exist, proceed with creation
+	}
+
 	// Create parent directories if they don't exist
 	dirPath := filepath.Dir(filePath)
 	if err := os.MkdirAll(dirPath, 0755); err != nil {

@@ -770,8 +770,8 @@ func TestProcessProject_NoFilesProcessed(t *testing.T) {
 	}
 }
 
-// TestWriteToFileWithDirectoryCreation tests that WriteToFile creates parent directories
-func TestWriteToFileWithDirectoryCreation(t *testing.T) {
+// TestWriteToFile tests all the behaviors of the WriteToFile function
+func TestWriteToFile(t *testing.T) {
 	// Create a temporary base directory for testing
 	tmpDir, err := os.MkdirTemp("", "handoff-writetofile-test-")
 	if err != nil {
@@ -783,37 +783,97 @@ func TestWriteToFileWithDirectoryCreation(t *testing.T) {
 		}
 	}()
 
-	// Create a nested path that doesn't exist yet
-	nestedDirPath := filepath.Join(tmpDir, "level1", "level2", "level3")
-	filePath := filepath.Join(nestedDirPath, "test.txt")
-	
-	// Content to write
-	content := "This is test content for directory creation"
-	
-	// Write to the file with non-existent directories
-	err = WriteToFile(content, filePath)
-	if err != nil {
-		t.Errorf("WriteToFile() failed with nested directories: %v", err)
-	}
-	
-	// Verify the file was created with the correct content
-	readContent, err := os.ReadFile(filePath)
-	if err != nil {
-		t.Errorf("Failed to read written file: %v", err)
-	}
-	
-	if string(readContent) != content {
-		t.Errorf("Written content doesn't match expected. Got %q, want %q", string(readContent), content)
-	}
-	
-	// Verify all parent directories were created
-	for _, dir := range []string{
-		filepath.Join(tmpDir, "level1"),
-		filepath.Join(tmpDir, "level1", "level2"),
-		filepath.Join(tmpDir, "level1", "level2", "level3"),
-	} {
-		if info, err := os.Stat(dir); err != nil || !info.IsDir() {
-			t.Errorf("Parent directory %s was not created or is not a directory", dir)
+	t.Run("With directory creation", func(t *testing.T) {
+		// Create a nested path that doesn't exist yet
+		nestedDirPath := filepath.Join(tmpDir, "level1", "level2", "level3")
+		filePath := filepath.Join(nestedDirPath, "test.txt")
+		
+		// Content to write
+		content := "This is test content for directory creation"
+		
+		// Write to the file with non-existent directories
+		err = WriteToFile(content, filePath, false) // overwrite=false, but file doesn't exist yet
+		if err != nil {
+			t.Errorf("WriteToFile() failed with nested directories: %v", err)
 		}
-	}
+		
+		// Verify the file was created with the correct content
+		readContent, err := os.ReadFile(filePath)
+		if err != nil {
+			t.Errorf("Failed to read written file: %v", err)
+		}
+		
+		if string(readContent) != content {
+			t.Errorf("Written content doesn't match expected. Got %q, want %q", string(readContent), content)
+		}
+		
+		// Verify all parent directories were created
+		for _, dir := range []string{
+			filepath.Join(tmpDir, "level1"),
+			filepath.Join(tmpDir, "level1", "level2"),
+			filepath.Join(tmpDir, "level1", "level2", "level3"),
+		} {
+			if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+				t.Errorf("Parent directory %s was not created or is not a directory", dir)
+			}
+		}
+	})
+
+	t.Run("With overwrite=false on existing file", func(t *testing.T) {
+		// Create a file that we'll try to overwrite
+		filePath := filepath.Join(tmpDir, "existing.txt")
+		originalContent := "Original content"
+		err := os.WriteFile(filePath, []byte(originalContent), 0644)
+		if err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+
+		// Try to overwrite with overwrite=false
+		newContent := "New content that should not be written"
+		err = WriteToFile(newContent, filePath, false)
+		
+		// Should get ErrFileExists error
+		if err == nil {
+			t.Errorf("WriteToFile() with overwrite=false didn't return error for existing file")
+		} else if !errors.Is(err, ErrFileExists) {
+			t.Errorf("WriteToFile() returned wrong error type. Got %v, want ErrFileExists", err)
+		}
+		
+		// Verify content wasn't changed
+		readContent, err := os.ReadFile(filePath)
+		if err != nil {
+			t.Errorf("Failed to read file: %v", err)
+		}
+		if string(readContent) != originalContent {
+			t.Errorf("File content was changed despite overwrite=false. Got %q, want %q", 
+				string(readContent), originalContent)
+		}
+	})
+
+	t.Run("With overwrite=true on existing file", func(t *testing.T) {
+		// Create a file that we'll overwrite
+		filePath := filepath.Join(tmpDir, "to-overwrite.txt")
+		originalContent := "Original content to be overwritten"
+		err := os.WriteFile(filePath, []byte(originalContent), 0644)
+		if err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+
+		// Overwrite with overwrite=true
+		newContent := "New content that should replace original"
+		err = WriteToFile(newContent, filePath, true)
+		if err != nil {
+			t.Errorf("WriteToFile() with overwrite=true failed: %v", err)
+		}
+		
+		// Verify content was changed
+		readContent, err := os.ReadFile(filePath)
+		if err != nil {
+			t.Errorf("Failed to read file: %v", err)
+		}
+		if string(readContent) != newContent {
+			t.Errorf("File content wasn't changed despite overwrite=true. Got %q, want %q", 
+				string(readContent), newContent)
+		}
+	})
 }

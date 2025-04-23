@@ -52,7 +52,7 @@ func main() {
 	}
 
 	// Use the content - write to file
-	if err := lib.WriteToFile(content, "output.md"); err != nil {
+	if err := lib.WriteToFile(content, "output.md", true); err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing to file: %v\n", err)
 		os.Exit(1)
 	}
@@ -95,19 +95,21 @@ The main function that processes one or more files or directories and returns th
 ### WriteToFile
 
 ```go
-func WriteToFile(content, filePath string) error
+func WriteToFile(content, filePath string, overwrite bool) error
 ```
 
-Utility to write content to a file.
+Utility to write content to a file with overwrite control.
 
 - **Parameters:**
   - `content string`: The content to write
   - `filePath string`: The path where the file should be written
+  - `overwrite bool`: Whether to overwrite the file if it already exists
 - **Returns:**
-  - `error`: Any error encountered while writing
+  - `error`: Any error encountered while writing, including `ErrFileExists` if the file exists and `overwrite` is false
 - **Notes:**
   - Creates parent directories if they don't exist
-  - Will overwrite existing files without warning
+  - Controls overwriting behavior with the `overwrite` parameter
+  - Returns `ErrFileExists` when trying to write to an existing file with `overwrite=false`
 
 ### CalculateStatistics
 

@@ -134,7 +134,7 @@ func main() {
 	fmt.Println("Character count:", len(content))
 	
 	// Write to a file
-	if err := lib.WriteToFile(content, "output.md"); err != nil {
+	if err := lib.WriteToFile(content, "output.md", true); err != nil {
 		fmt.Printf("Error writing to file: %v\n", err)
 	}
 	
