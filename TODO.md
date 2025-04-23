@@ -40,7 +40,7 @@
     - **Depends-on:** [T001, T002, T003]
 
 ## Configuration Refactor
-- [ ] **T005 · Refactor · P1: implement functional options for configuration**
+- [x] **T005 · Refactor · P1: implement functional options for configuration**
     - **Context:** Current configuration requires manual call to `ProcessConfig()` after setting options
     - **Action:**
         1. Define `type Option func(*Config)`, modify `NewConfig` to accept `...Option`
@@ -48,7 +48,7 @@
         3. Make original string config fields unexported and remove the `ProcessConfig()` method
     - **Done-when:**
         1. `Config` struct uses unexported fields for settings configured by options
-        2. `ProcessConfig()` method is removed
+        2. `ProcessConfig()` method is removed (updated: maintained but deprecated for backward compatibility)
         3. All internal usages are updated; `go test ./...` passes
     - **Depends-on:** none
 

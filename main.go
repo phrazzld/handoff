@@ -15,26 +15,55 @@ import (
 // and returns a populated Config struct from the library package.
 // It also returns the CLI-specific options as separate values (output file path, force flag, and dry run flag).
 func parseConfig() (*handoff.Config, string, bool, bool) {
-	config := handoff.NewConfig()
+	// Define flags for CLI use
+	var (
+		verbose       bool
+		include       string
+		exclude       string
+		excludeNames  string
+		format        string = "<{path}>\n```\n{content}\n```\n</{path}>\n\n"
+		dryRun        bool
+		outputFile    string
+		force         bool
+	)
 
-	// Define flags
-	var dryRun bool
-	var outputFile string
-	var force bool
-	flag.BoolVar(&config.Verbose, "verbose", false, "Enable verbose output")
+	// Define flag bindings
+	flag.BoolVar(&verbose, "verbose", false, "Enable verbose output")
 	flag.BoolVar(&dryRun, "dry-run", false, "Preview what would be copied without actually copying")
-	flag.StringVar(&config.Include, "include", "", "Comma-separated list of file extensions to include (e.g., .txt,.go)")
-	flag.StringVar(&config.Exclude, "exclude", "", "Comma-separated list of file extensions to exclude (e.g., .exe,.bin)")
-	flag.StringVar(&config.ExcludeNamesStr, "exclude-names", "", "Comma-separated list of file names to exclude (e.g., package-lock.json,yarn.lock)")
-	flag.StringVar(&config.Format, "format", "<{path}>\n```\n{content}\n```\n</{path}>\n\n", "Custom format for output. Use {path} and {content} as placeholders")
+	flag.StringVar(&include, "include", "", "Comma-separated list of file extensions to include (e.g., .txt,.go)")
+	flag.StringVar(&exclude, "exclude", "", "Comma-separated list of file extensions to exclude (e.g., .exe,.bin)")
+	flag.StringVar(&excludeNames, "exclude-names", "", "Comma-separated list of file names to exclude (e.g., package-lock.json,yarn.lock)")
+	flag.StringVar(&format, "format", format, "Custom format for output. Use {path} and {content} as placeholders")
 	flag.StringVar(&outputFile, "output", "", "Write output to the specified file instead of clipboard (e.g., HANDOFF.md)")
 	flag.BoolVar(&force, "force", false, "Allow overwriting existing files when using -output flag")
 
 	// Parse command-line flags
 	flag.Parse()
 
-	// Process config (converts include/exclude strings to slices)
-	config.ProcessConfig()
+	// Create config with functional options based on CLI flags
+	var options []handoff.Option
+	
+	if verbose {
+		options = append(options, handoff.WithVerbose(verbose))
+	}
+	
+	if include != "" {
+		options = append(options, handoff.WithInclude(include))
+	}
+	
+	if exclude != "" {
+		options = append(options, handoff.WithExclude(exclude))
+	}
+	
+	if excludeNames != "" {
+		options = append(options, handoff.WithExcludeNames(excludeNames))
+	}
+	
+	if format != "" {
+		options = append(options, handoff.WithFormat(format))
+	}
+	
+	config := handoff.NewConfig(options...)
 
 	return config, outputFile, force, dryRun
 }

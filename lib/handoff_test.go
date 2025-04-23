@@ -67,7 +67,7 @@ func TestShouldProcess(t *testing.T) {
 			name: "Match include extension",
 			file: "test.go",
 			config: &Config{
-				IncludeExts: []string{".go"},
+				includeExts: []string{".go"},
 			},
 			shouldProc: true,
 		},
@@ -75,7 +75,7 @@ func TestShouldProcess(t *testing.T) {
 			name: "No match include extension",
 			file: "test.txt",
 			config: &Config{
-				IncludeExts: []string{".go"},
+				includeExts: []string{".go"},
 			},
 			shouldProc: false,
 		},
@@ -83,7 +83,7 @@ func TestShouldProcess(t *testing.T) {
 			name: "Match exclude extension",
 			file: "test.bin",
 			config: &Config{
-				ExcludeExts: []string{".bin"},
+				excludeExts: []string{".bin"},
 			},
 			shouldProc: false,
 		},
@@ -91,7 +91,7 @@ func TestShouldProcess(t *testing.T) {
 			name: "Match exclude name",
 			file: "package-lock.json",
 			config: &Config{
-				ExcludeNames: []string{"package-lock.json"},
+				excludeNames: []string{"package-lock.json"},
 			},
 			shouldProc: false,
 		},
@@ -105,8 +105,8 @@ func TestShouldProcess(t *testing.T) {
 			name: "Match exclude has precedence over include",
 			file: "something.exe",
 			config: &Config{
-				IncludeExts: []string{".exe"},
-				ExcludeExts: []string{".exe"},
+				includeExts: []string{".exe"},
+				excludeExts: []string{".exe"},
 			},
 			shouldProc: false,
 		},
@@ -242,7 +242,7 @@ func TestProcessFile(t *testing.T) {
 
 	// Test with exclusion config
 	configWithExclude := &Config{
-		ExcludeExts: []string{".txt"},
+		excludeExts: []string{".txt"},
 	}
 	result = ProcessFile(filePath, logger, configWithExclude, processor)
 	if result != "" {
@@ -260,14 +260,86 @@ func TestNewConfig(t *testing.T) {
 	if config.Format != "<{path}>\n```\n{content}\n```\n</{path}>\n\n" {
 		t.Errorf("Default config.Format = %q, want default format", config.Format)
 	}
-	if len(config.IncludeExts) != 0 {
-		t.Errorf("Default config.IncludeExts = %v, want empty slice", config.IncludeExts)
+	if len(config.includeExts) != 0 {
+		t.Errorf("Default config.includeExts = %v, want empty slice", config.includeExts)
 	}
-	if len(config.ExcludeExts) != 0 {
-		t.Errorf("Default config.ExcludeExts = %v, want empty slice", config.ExcludeExts)
+	if len(config.excludeExts) != 0 {
+		t.Errorf("Default config.excludeExts = %v, want empty slice", config.excludeExts)
 	}
-	if len(config.ExcludeNames) != 0 {
-		t.Errorf("Default config.ExcludeNames = %v, want empty slice", config.ExcludeNames)
+	if len(config.excludeNames) != 0 {
+		t.Errorf("Default config.excludeNames = %v, want empty slice", config.excludeNames)
+	}
+}
+
+func TestFunctionalOptions(t *testing.T) {
+	// Test with no options
+	config1 := NewConfig()
+	if config1.Verbose {
+		t.Errorf("Default config.Verbose = true, want false")
+	}
+
+	// Test WithVerbose
+	config2 := NewConfig(WithVerbose(true))
+	if !config2.Verbose {
+		t.Errorf("config.Verbose = false, want true")
+	}
+
+	// Test WithFormat
+	customFormat := "File: {path}\n{content}\n---\n"
+	config3 := NewConfig(WithFormat(customFormat))
+	if config3.Format != customFormat {
+		t.Errorf("config.Format = %q, want %q", config3.Format, customFormat)
+	}
+
+	// Test WithInclude
+	config4 := NewConfig(WithInclude(".go,.js"))
+	if len(config4.includeExts) != 2 {
+		t.Errorf("config.includeExts length = %d, want 2", len(config4.includeExts))
+	}
+	if !equalSlices(config4.includeExts, []string{".go", ".js"}) {
+		t.Errorf("config.includeExts = %v, want [.go .js]", config4.includeExts)
+	}
+
+	// Test WithExclude
+	config5 := NewConfig(WithExclude("exe,bin"))
+	if len(config5.excludeExts) != 2 {
+		t.Errorf("config.excludeExts length = %d, want 2", len(config5.excludeExts))
+	}
+	if !equalSlices(config5.excludeExts, []string{".exe", ".bin"}) {
+		t.Errorf("config.excludeExts = %v, want [.exe .bin]", config5.excludeExts)
+	}
+
+	// Test WithExcludeNames
+	config6 := NewConfig(WithExcludeNames("node_modules,package-lock.json"))
+	if len(config6.excludeNames) != 2 {
+		t.Errorf("config.excludeNames length = %d, want 2", len(config6.excludeNames))
+	}
+	if !equalSlices(config6.excludeNames, []string{"node_modules", "package-lock.json"}) {
+		t.Errorf("config.excludeNames = %v, want [node_modules package-lock.json]", config6.excludeNames)
+	}
+
+	// Test multiple options
+	config7 := NewConfig(
+		WithVerbose(true),
+		WithFormat(customFormat),
+		WithInclude(".go"),
+		WithExclude(".bin"),
+		WithExcludeNames("node_modules"),
+	)
+	if !config7.Verbose {
+		t.Errorf("config.Verbose = false, want true")
+	}
+	if config7.Format != customFormat {
+		t.Errorf("config.Format = %q, want %q", config7.Format, customFormat)
+	}
+	if !equalSlices(config7.includeExts, []string{".go"}) {
+		t.Errorf("config.includeExts = %v, want [.go]", config7.includeExts)
+	}
+	if !equalSlices(config7.excludeExts, []string{".bin"}) {
+		t.Errorf("config.excludeExts = %v, want [.bin]", config7.excludeExts)
+	}
+	if !equalSlices(config7.excludeNames, []string{"node_modules"}) {
+		t.Errorf("config.excludeNames = %v, want [node_modules]", config7.excludeNames)
 	}
 }
 
@@ -331,26 +403,26 @@ func TestProcessConfig(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			config := &Config{
-				Include:        tc.includeStr,
-				Exclude:        tc.excludeStr,
-				ExcludeNamesStr: tc.excludeNamesStr,
+				include:        tc.includeStr,
+				exclude:        tc.excludeStr,
+				excludeNamesStr: tc.excludeNamesStr,
 			}
 
 			config.ProcessConfig()
 
 			// Check include extensions
-			if !equalSlices(config.IncludeExts, tc.wantIncludeExts) {
-				t.Errorf("IncludeExts = %v, want %v", config.IncludeExts, tc.wantIncludeExts)
+			if !equalSlices(config.includeExts, tc.wantIncludeExts) {
+				t.Errorf("includeExts = %v, want %v", config.includeExts, tc.wantIncludeExts)
 			}
 
 			// Check exclude extensions
-			if !equalSlices(config.ExcludeExts, tc.wantExcludeExts) {
-				t.Errorf("ExcludeExts = %v, want %v", config.ExcludeExts, tc.wantExcludeExts)
+			if !equalSlices(config.excludeExts, tc.wantExcludeExts) {
+				t.Errorf("excludeExts = %v, want %v", config.excludeExts, tc.wantExcludeExts)
 			}
 
 			// Check exclude names
-			if !equalSlices(config.ExcludeNames, tc.wantExcludeNames) {
-				t.Errorf("ExcludeNames = %v, want %v", config.ExcludeNames, tc.wantExcludeNames)
+			if !equalSlices(config.excludeNames, tc.wantExcludeNames) {
+				t.Errorf("excludeNames = %v, want %v", config.excludeNames, tc.wantExcludeNames)
 			}
 		})
 	}
@@ -451,7 +523,7 @@ func TestProcessProject(t *testing.T) {
 		{
 			name:          "Filter by include extension",
 			paths:         []string{tmpDir},
-			config:        &Config{Include: ".go"},
+			config:        NewConfig(WithInclude(".go")),
 			wantErr:       false,
 			expectContent: []string{"main.go", "util.go", "subfile2.go"},
 			rejectContent: []string{"file1.txt", "readme.md", "binary.bin"},
@@ -459,7 +531,7 @@ func TestProcessProject(t *testing.T) {
 		{
 			name:          "Filter by exclude extension",
 			paths:         []string{tmpDir},
-			config:        &Config{Exclude: ".txt,.md"},
+			config:        NewConfig(WithExclude(".txt,.md")),
 			wantErr:       false,
 			expectContent: []string{"main.go", "util.go"},
 			rejectContent: []string{"file1.txt", "readme.md"},
@@ -475,7 +547,7 @@ func TestProcessProject(t *testing.T) {
 		{
 			name:          "Custom format",
 			paths:         []string{filepath.Join(tmpDir, "main.go")},
-			config:        &Config{Format: "FILE: {path}\n---\n{content}\n---\n"},
+			config:        NewConfig(WithFormat("FILE: {path}\n---\n{content}\n---\n")),
 			wantErr:       false,
 			expectContent: []string{"FILE:", "---"},
 			customFormat:  true,
@@ -629,10 +701,8 @@ func TestProcessPaths_ErrNoFilesProcessed(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	// Create config that will exclude the file
-	config := NewConfig()
-	config.Exclude = ".txt" // Exclude the .txt file we created
-	config.ProcessConfig()
+	// Create config that will exclude the file using functional options
+	config := NewConfig(WithExclude(".txt")) // Exclude the .txt file we created
 	logger := NewLogger(false)
 
 	// Call ProcessPaths
@@ -678,10 +748,8 @@ func TestProcessProject_NoFilesProcessed(t *testing.T) {
 		gitAvailable = originalGitAvailable
 	}()
 
-	// Create config that will exclude the file
-	config := NewConfig()
-	config.Exclude = ".txt" // Exclude the .txt file we created
-	config.ProcessConfig()
+	// Create config that will exclude the file using functional options
+	config := NewConfig(WithExclude(".txt")) // Exclude the .txt file we created
 
 	// Call ProcessProject
 	content, stats, err := ProcessProject([]string{tmpDir}, config)

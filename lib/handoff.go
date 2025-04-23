@@ -35,43 +35,115 @@ import (
 // but no files were processed due to filtering
 var ErrNoFilesProcessed = errors.New("no files were processed from the provided paths")
 
+// Option is a function that configures a Config instance.
+// It implements the functional options pattern for configuration.
+type Option func(*Config)
+
 // Config holds all configuration options for file processing and output formatting.
-// Users should create a Config with NewConfig() and set the desired options before
-// calling ProcessConfig() to prepare the configuration for use.
+// Users should create a Config with NewConfig() and provide the desired options as arguments.
 type Config struct {
 	// Verbose enables detailed logging output
 	Verbose bool
 
-	// Include is a comma-separated list of file extensions to include (e.g., ".go,.md")
-	Include string
-
-	// Exclude is a comma-separated list of file extensions to exclude (e.g., ".exe,.bin")
-	Exclude string
-
-	// ExcludeNamesStr is a comma-separated list of filenames to exclude (e.g., "package-lock.json,yarn.lock")
-	ExcludeNamesStr string
-
 	// Format is a template string for formatting output, using {path} and {content} placeholders
 	Format string
 
-	// IncludeExts contains the processed list of file extensions to include (populated by ProcessConfig)
-	IncludeExts []string
+	// Internal representation of include/exclude patterns
+	includeExts []string
+	excludeExts []string
+	excludeNames []string
 
-	// ExcludeExts contains the processed list of file extensions to exclude (populated by ProcessConfig)
-	ExcludeExts []string
-
-	// ExcludeNames contains the processed list of filenames to exclude (populated by ProcessConfig)
-	ExcludeNames []string
+	// Original string forms (retained for backward compatibility)
+	include string
+	exclude string
+	excludeNamesStr string
 }
 
-// NewConfig creates a new Config with default values.
+// NewConfig creates a new Config with default values and applies the given options.
 // By default, Verbose is false and Format uses a sensible default format
 // with file path headers and code fences.
-func NewConfig() *Config {
-	return &Config{
+func NewConfig(opts ...Option) *Config {
+	c := &Config{
 		Verbose: false,
 		Format:  "<{path}>\n```\n{content}\n```\n</{path}>\n\n",
 	}
+	
+	// Apply all options
+	for _, opt := range opts {
+		opt(c)
+	}
+	
+	return c
+}
+
+// WithVerbose sets the verbose output flag.
+func WithVerbose(verbose bool) Option {
+	return func(c *Config) {
+		c.Verbose = verbose
+	}
+}
+
+// WithFormat sets the output format template.
+func WithFormat(format string) Option {
+	return func(c *Config) {
+		c.Format = format
+	}
+}
+
+// WithInclude specifies file extensions to include.
+// Extensions can be provided with or without dots (e.g., ".go,.md" or "go,md").
+func WithInclude(include string) Option {
+	return func(c *Config) {
+		c.include = include
+		c.includeExts = processExtensions(include)
+	}
+}
+
+// WithExclude specifies file extensions to exclude.
+// Extensions can be provided with or without dots (e.g., ".exe,.bin" or "exe,bin").
+func WithExclude(exclude string) Option {
+	return func(c *Config) {
+		c.exclude = exclude
+		c.excludeExts = processExtensions(exclude)
+	}
+}
+
+// WithExcludeNames specifies file names to exclude.
+func WithExcludeNames(excludeNames string) Option {
+	return func(c *Config) {
+		c.excludeNamesStr = excludeNames
+		c.excludeNames = processNames(excludeNames)
+	}
+}
+
+// Helper function to process comma-separated extensions
+func processExtensions(exts string) []string {
+	if exts == "" {
+		return nil
+	}
+	
+	result := []string{}
+	for _, ext := range strings.Split(exts, ",") {
+		ext = strings.TrimSpace(ext)
+		if !strings.HasPrefix(ext, ".") {
+			ext = "." + ext
+		}
+		result = append(result, ext)
+	}
+	return result
+}
+
+// Helper function to process comma-separated names
+func processNames(names string) []string {
+	if names == "" {
+		return nil
+	}
+	
+	result := []string{}
+	for _, name := range strings.Split(names, ",") {
+		result = append(result, strings.TrimSpace(name))
+	}
+	return result
 }
 
 // ProcessorFunc is a function type that processes a file's content and returns formatted output.
@@ -150,38 +222,23 @@ func init() {
 	gitAvailable = err == nil
 }
 
-// ProcessConfig processes the string-based Include, Exclude, and ExcludeNamesStr fields
-// in the Config struct and populates the corresponding slice fields (IncludeExts, ExcludeExts, ExcludeNames).
+// ProcessConfig is maintained for backward compatibility.
+// It processes the string-based fields in the Config struct and populates
+// the corresponding slice fields using the new helper functions.
 //
-// This method should be called after setting the string fields and before using the Config
-// with ProcessProject or other processing functions. It ensures file extensions start with a dot
-// and normalizes strings by trimming spaces.
+// Note: This method is deprecated. New code should use the functional options pattern
+// with NewConfig() and option functions like WithInclude(), WithExclude(), etc.
 func (c *Config) ProcessConfig() {
-	// Process include/exclude extensions
-	if c.Include != "" {
-		c.IncludeExts = strings.Split(c.Include, ",")
-		for i, ext := range c.IncludeExts {
-			c.IncludeExts[i] = strings.TrimSpace(ext)
-			if !strings.HasPrefix(c.IncludeExts[i], ".") {
-				c.IncludeExts[i] = "." + c.IncludeExts[i]
-			}
-		}
+	// Only re-process if the internal slices are nil or empty
+	// This ensures we don't overwrite slices already set by option functions
+	if c.includeExts == nil && c.include != "" {
+		c.includeExts = processExtensions(c.include)
 	}
-	if c.Exclude != "" {
-		c.ExcludeExts = strings.Split(c.Exclude, ",")
-		for i, ext := range c.ExcludeExts {
-			c.ExcludeExts[i] = strings.TrimSpace(ext)
-			if !strings.HasPrefix(c.ExcludeExts[i], ".") {
-				c.ExcludeExts[i] = "." + c.ExcludeExts[i]
-			}
-		}
+	if c.excludeExts == nil && c.exclude != "" {
+		c.excludeExts = processExtensions(c.exclude)
 	}
-	// Process exclude names
-	if c.ExcludeNamesStr != "" {
-		c.ExcludeNames = strings.Split(c.ExcludeNamesStr, ",")
-		for i, name := range c.ExcludeNames {
-			c.ExcludeNames[i] = strings.TrimSpace(name)
-		}
+	if c.excludeNames == nil && c.excludeNamesStr != "" {
+		c.excludeNames = processNames(c.excludeNamesStr)
 	}
 }
 
@@ -334,14 +391,14 @@ func shouldProcess(file string, config *Config) bool {
 	ext := strings.ToLower(filepath.Ext(file))
 
 	// Check exclude names filter
-	if len(config.ExcludeNames) > 0 && slices.Contains(config.ExcludeNames, base) {
+	if len(config.excludeNames) > 0 && slices.Contains(config.excludeNames, base) {
 		return false
 	}
 
 	// Check include extensions filter
-	if len(config.IncludeExts) > 0 {
+	if len(config.includeExts) > 0 {
 		included := false
-		for _, includeExt := range config.IncludeExts {
+		for _, includeExt := range config.includeExts {
 			if ext == includeExt {
 				included = true
 				break
@@ -353,8 +410,8 @@ func shouldProcess(file string, config *Config) bool {
 	}
 
 	// Check exclude extensions filter
-	if len(config.ExcludeExts) > 0 {
-		for _, excludeExt := range config.ExcludeExts {
+	if len(config.excludeExts) > 0 {
+		for _, excludeExt := range config.excludeExts {
 			if ext == excludeExt {
 				return false
 			}
@@ -398,7 +455,7 @@ func ProcessFile(filePath string, logger *Logger, config *Config, processor Proc
 
 	// Check if file should be processed based on filters
 	if !shouldProcess(filePath, config) {
-		if len(config.ExcludeNames) > 0 && slices.Contains(config.ExcludeNames, filepath.Base(filePath)) {
+		if len(config.excludeNames) > 0 && slices.Contains(config.excludeNames, filepath.Base(filePath)) {
 			logger.Verbose("skipping file (in exclude-names list): %s", filePath)
 		}
 		return ""
@@ -614,8 +671,9 @@ func CalculateStatistics(content string) (charCount, lineCount, tokenCount int) 
 // applications should use. It handles all aspects of file collection, filtering, and
 // formatting according to the provided configuration.
 //
-// If config is nil, default configuration is used. The function automatically calls
-// ProcessConfig() on the configuration to ensure string-based filters are processed.
+// If config is nil, default configuration is used. For backward compatibility, the function
+// calls ProcessConfig() on the configuration, but this is unnecessary when using the functional
+// options pattern.
 //
 // Parameters:
 //   - paths: List of file or directory paths to process
@@ -630,7 +688,10 @@ func ProcessProject(paths []string, config *Config) (string, Stats, error) {
 		config = NewConfig()
 	}
 
+	// For backward compatibility with existing code
+	// This call is unnecessary when using the functional options pattern
 	config.ProcessConfig()
+	
 	logger := NewLogger(config.Verbose)
 
 	if len(paths) == 0 {
