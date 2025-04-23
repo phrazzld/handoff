@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -10,6 +11,9 @@ import (
 
 	handoff "github.com/phrazzld/handoff/lib"
 )
+
+// ErrClipboardFailed is returned when all clipboard commands fail
+var ErrClipboardFailed = errors.New("clipboard commands failed")
 
 // parseConfig defines and parses command-line flags, processes include/exclude extensions,
 // and returns a populated Config struct from the library package.
@@ -112,7 +116,7 @@ func copyToClipboard(text string) error {
 	}
 
 	// If we get here, all clipboard commands failed
-	return fmt.Errorf("clipboard commands failed: %s", strings.Join(errors, "; "))
+	return fmt.Errorf("%w: %s", ErrClipboardFailed, strings.Join(errors, "; "))
 }
 
 // resolveOutputPath converts a relative path to an absolute path.

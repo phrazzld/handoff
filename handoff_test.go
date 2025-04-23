@@ -1,10 +1,10 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -297,9 +297,9 @@ func TestCopyToClipboardErrorHandling(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected error when no clipboard commands are available, but got nil")
 	} else {
-		// Verify error message contains expected text
-		if !strings.Contains(err.Error(), "clipboard commands failed") {
-			t.Errorf("Expected error message to contain 'clipboard commands failed', got: %v", err)
+		// Use errors.Is for more robust error type checking
+		if !errors.Is(err, ErrClipboardFailed) {
+			t.Errorf("Expected error type ErrClipboardFailed, got: %v", err)
 		}
 	}
 }

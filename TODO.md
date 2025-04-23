@@ -216,7 +216,7 @@
         3. Tests pass
     - **Depends-on:** none
 
-- [ ] **T019 · Test · P2: improve error type checking in clipboard tests**
+- [x] **T019 · Test · P2: improve error type checking in clipboard tests**
     - **Context:** Clipboard tests rely on error message strings
     - **Action:**
         1. Review tests involving clipboard operations that check for errors
