@@ -1,4 +1,4 @@
-# Binaries for programs and plugins
+# Go binaries and build artifacts
 *.exe
 *.exe~
 *.dll
@@ -6,37 +6,82 @@
 *.dylib
 handoff
 
-# Test binary, built with `go test -c`
+# Test and coverage artifacts
+# Test binaries built with `go test -c`
 *.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
+# Coverage output from standard Go tools
 *.out
+# Additional coverage file formats
+*.cov
+# CPU/Memory profiling outputs
+*.prof
+# Common coverage output file
+coverage.txt
+# HTML coverage reports
+cover.html
 
-# Dependency directories (remove the comment below to include it)
+# Go specific
+# Uncomment to ignore vendor/ directory if using vendoring
 # vendor/
-
-# Go workspace file
+# Go workspace file for multi-module work
 go.work
+# Go workspace checksums
+go.work.sum
 
-# IDE/Editor folders
+# IDE and editor files
+# JetBrains IDEs (GoLand, IntelliJ, etc.)
 .idea/
+# Visual Studio Code
 .vscode/
+# Vim swap files
 *.swp
 *.swo
+# Temporary files often created by editors
+*~
+# Eclipse project files
+.project
+# Eclipse settings directory
+.settings/
+# Sublime Text project files
+*.sublime-*
 
 # OS specific files
+# macOS directory metadata
 .DS_Store
-.DS_Store?
+# macOS resource forks and attributes
 ._*
+# macOS Spotlight index data
 .Spotlight-V100
+# macOS trash folder metadata
 .Trashes
+# Windows thumbnail cache
 ehthumbs.db
 Thumbs.db
+# Windows folder configuration file
+desktop.ini
 
-# Project specific
+# Temporary and backup files
+# Backup files
+*.bak
+# Temporary files
+*.tmp
+# Log files
+*.log
+
+# Project specific files and directories
+# Context information for development
 CONTEXT.md
+# AI architect tool output
 architect_output/
+# AI prompt documentation
 docs/prompts/
+# Code review notes
 CODE_REVIEW.md
+# Project planning document
 PLAN.md
+# Task plan documents
+*-plan.md
+# Task definition documents
+*-task.md
+# Coverage check binaries
 tools/coverage-check/coverage-check*

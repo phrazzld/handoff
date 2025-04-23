@@ -246,7 +246,7 @@
         1. All `go.mod` files declare the same Go version
     - **Depends-on:** none
 
-- [ ] **T022 · Chore · P3: verify and clean up .gitignore entries**
+- [x] **T022 · Chore · P3: verify and clean up .gitignore entries**
     - **Context:** .gitignore may contain outdated entries
     - **Action:**
         1. Review entries in `.gitignore`
