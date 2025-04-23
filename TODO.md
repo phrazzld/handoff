@@ -226,7 +226,7 @@
         2. Tests pass
     - **Depends-on:** none
 
-- [ ] **T020 · Test · P2: improve robustness of error message checking**
+- [x] **T020 · Test · P2: improve robustness of error message checking**
     - **Context:** Tests that assert specific error message strings are brittle
     - **Action:**
         1. Review tests that assert exact error message strings
