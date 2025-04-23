@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -11,29 +12,62 @@ import (
 	handoff "github.com/phrazzld/handoff/lib"
 )
 
-// parseConfig defines and parses command-line flags, processes include/exclude extensions,
-// and returns a populated Config struct, output file path, force flag, and dry run flag.
-func parseConfig() (*handoff.Config, string, bool, bool) {
-	config := handoff.NewConfig()
+// ErrClipboardFailed is returned when all clipboard commands fail
+var ErrClipboardFailed = errors.New("clipboard commands failed")
 
-	// Define flags
-	var dryRun bool
-	var outputFile string
-	var force bool
-	flag.BoolVar(&config.Verbose, "verbose", false, "Enable verbose output")
+// parseConfig defines and parses command-line flags, processes include/exclude extensions,
+// and returns a populated Config struct from the library package.
+// It also returns the CLI-specific options as separate values (output file path, force flag, and dry run flag).
+func parseConfig() (*handoff.Config, string, bool, bool) {
+	// Define flags for CLI use
+	var (
+		verbose       bool
+		include       string
+		exclude       string
+		excludeNames  string
+		format        string = "<{path}>\n```\n{content}\n```\n</{path}>\n\n"
+		dryRun        bool
+		outputFile    string
+		force         bool
+	)
+
+	// Define flag bindings
+	flag.BoolVar(&verbose, "verbose", false, "Enable verbose output")
 	flag.BoolVar(&dryRun, "dry-run", false, "Preview what would be copied without actually copying")
-	flag.StringVar(&config.Include, "include", "", "Comma-separated list of file extensions to include (e.g., .txt,.go)")
-	flag.StringVar(&config.Exclude, "exclude", "", "Comma-separated list of file extensions to exclude (e.g., .exe,.bin)")
-	flag.StringVar(&config.ExcludeNamesStr, "exclude-names", "", "Comma-separated list of file names to exclude (e.g., package-lock.json,yarn.lock)")
-	flag.StringVar(&config.Format, "format", "<{path}>\n```\n{content}\n```\n</{path}>\n\n", "Custom format for output. Use {path} and {content} as placeholders")
+	flag.StringVar(&include, "include", "", "Comma-separated list of file extensions to include (e.g., .txt,.go)")
+	flag.StringVar(&exclude, "exclude", "", "Comma-separated list of file extensions to exclude (e.g., .exe,.bin)")
+	flag.StringVar(&excludeNames, "exclude-names", "", "Comma-separated list of file names to exclude (e.g., package-lock.json,yarn.lock)")
+	flag.StringVar(&format, "format", format, "Custom format for output. Use {path} and {content} as placeholders")
 	flag.StringVar(&outputFile, "output", "", "Write output to the specified file instead of clipboard (e.g., HANDOFF.md)")
 	flag.BoolVar(&force, "force", false, "Allow overwriting existing files when using -output flag")
 
 	// Parse command-line flags
 	flag.Parse()
 
-	// Process config (converts include/exclude strings to slices)
-	config.ProcessConfig()
+	// Create config with functional options based on CLI flags
+	var options []handoff.Option
+	
+	if verbose {
+		options = append(options, handoff.WithVerbose(verbose))
+	}
+	
+	if include != "" {
+		options = append(options, handoff.WithInclude(include))
+	}
+	
+	if exclude != "" {
+		options = append(options, handoff.WithExclude(exclude))
+	}
+	
+	if excludeNames != "" {
+		options = append(options, handoff.WithExcludeNames(excludeNames))
+	}
+	
+	if format != "" {
+		options = append(options, handoff.WithFormat(format))
+	}
+	
+	config := handoff.NewConfig(options...)
 
 	return config, outputFile, force, dryRun
 }
@@ -82,19 +116,19 @@ func copyToClipboard(text string) error {
 	}
 
 	// If we get here, all clipboard commands failed
-	return fmt.Errorf("clipboard commands failed: %s", strings.Join(errors, "; "))
+	return fmt.Errorf("%w: %s", ErrClipboardFailed, strings.Join(errors, "; "))
 }
 
 // resolveOutputPath converts a relative path to an absolute path.
 // It returns the absolute path and any error encountered.
 func resolveOutputPath(path string) (string, error) {
 	if path == "" {
-		return "", fmt.Errorf("output path is empty")
+		return "", fmt.Errorf("output path cannot be empty")
 	}
 
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return "", fmt.Errorf("failed to determine absolute path: %w", err)
+		return "", fmt.Errorf("failed to determine absolute path for %q: %w", path, err)
 	}
 
 	return absPath, nil
@@ -114,7 +148,24 @@ func checkFileExists(path string) (bool, error) {
 		return false, nil
 	}
 	// Some other error occurred (e.g., permission denied)
-	return false, fmt.Errorf("cannot check if file exists: %w", err)
+	return false, fmt.Errorf("cannot check if file %q exists: %w", path, err)
+}
+
+// Note: processPathUsingLib function was removed as it was unused after refactoring
+
+// logStatisticsUsingLib logs statistics about the processed content
+// using the Stats struct returned by ProcessProject
+func logStatisticsUsingLib(stats handoff.Stats, config *handoff.Config, logger *handoff.Logger) {
+	// Log statistics
+	logger.Info("Handoff complete:")
+	logger.Info("- Files: %d/%d", stats.FilesProcessed, stats.FilesTotal)
+	logger.Info("- Lines: %d", stats.Lines)
+	logger.Info("- Characters: %d", stats.Chars)
+	logger.Info("- Estimated tokens: %d", stats.Tokens)
+
+	if config.Verbose {
+		logger.Verbose("Processed files successfully")
+	}
 }
 
 func main() {
@@ -156,7 +207,7 @@ func main() {
 	}
 
 	// Process paths and get content
-	formattedContent, err := handoff.ProcessProject(flag.Args(), config)
+	formattedContent, stats, err := handoff.ProcessProject(flag.Args(), config)
 	if err != nil {
 		logger.Error("Failed to process project: %v", err)
 		os.Exit(1)
@@ -171,7 +222,7 @@ func main() {
 	} else if outputFile != "" {
 		// Medium precedence: write to file
 		logger.Verbose("Writing content (%d bytes) to file: %s", len(formattedContent), absOutputPath)
-		if err := handoff.WriteToFile(formattedContent, absOutputPath); err != nil {
+		if err := handoff.WriteToFile(formattedContent, absOutputPath, force); err != nil {
 			logger.Error("Failed to write to file %s: %v", absOutputPath, err)
 			os.Exit(1)
 		}
@@ -185,14 +236,6 @@ func main() {
 		logger.Info("Content successfully copied to clipboard.")
 	}
 
-	// Calculate and log statistics
-	charCount, lineCount, tokenCount := handoff.CalculateStatistics(formattedContent)
-	// Count processed files from the content
-	processedFiles := strings.Count(formattedContent, "</")
-
-	logger.Info("Handoff complete:")
-	logger.Info("- Files: %d", processedFiles)
-	logger.Info("- Lines: %d", lineCount)
-	logger.Info("- Characters: %d", charCount)
-	logger.Info("- Estimated tokens: %d", tokenCount)
+	// Log statistics
+	logStatisticsUsingLib(stats, config, logger)
 }
