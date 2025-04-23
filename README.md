@@ -118,36 +118,37 @@ import (
 func main() {
 	// Create a configuration with functional options
 	config := lib.NewConfig(
-		lib.WithVerbose(true),
-		lib.WithExclude(".exe,.bin,.jpg,.png"),
-		lib.WithExcludeNames("node_modules,package-lock.json"),
+		lib.WithVerbose(true),                               // Enable verbose logging
+		lib.WithInclude(".go,.md,.txt"),                     // Only include specific file types
+		lib.WithExclude(".exe,.bin,.jpg,.png"),              // Exclude binary and image files
+		lib.WithExcludeNames("node_modules,package-lock.json"), // Skip specific files/directories
+		lib.WithFormat("## {path}\n```\n{content}\n```\n\n"), // Custom output format
 	)
 	
-	// Alternatively, use the traditional approach (requires ProcessConfig)
-	// config := lib.NewConfig()
-	// config.Verbose = true
-	// config.Exclude = ".exe,.bin,.jpg,.png"
-	// config.ExcludeNamesStr = "node_modules,package-lock.json"
-	// config.ProcessConfig() // Process string settings into slices
-
-	// Process project files
+	// Process project files (the main API entry point)
 	content, stats, err := lib.ProcessProject([]string{"./my-project"}, config)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
-	// Use the content
-	fmt.Println("Character count:", stats.Chars)
-	
-	// Write to a file
+	// Use the content - write to a file with overwrite protection
 	if err := lib.WriteToFile(content, "output.md", true); err != nil {
 		fmt.Printf("Error writing to file: %v\n", err)
 	}
 	
-	// Display statistics
-	fmt.Printf("Stats: %d chars, %d lines, ~%d tokens\n", 
-		stats.Chars, stats.Lines, stats.Tokens)
+	// Display statistics returned from ProcessProject
+	fmt.Printf("Processed %d/%d files\n", stats.FilesProcessed, stats.FilesTotal)
+	fmt.Printf("Content stats: %d lines, %d chars, ~%d tokens\n", 
+		stats.Lines, stats.Chars, stats.Tokens)
+		
+	// You can also calculate statistics for any content directly
+	chars, lines, tokens := lib.CalculateStatistics("Some content to analyze")
+	fmt.Printf("Analysis: %d chars, %d lines, ~%d tokens\n", chars, lines, tokens)
+	
+	// Wrap any content in context tags if needed
+	wrappedContent := lib.WrapInContext("Content to be wrapped in context tags")
+	fmt.Println(wrappedContent)
 }
 ```
 
@@ -173,7 +174,7 @@ content of file.go
 </context>
 ````
 
-You can customize this format using the `--format` flag with `{path}` and `{content}` placeholders.
+You can customize this format using the `-format` flag with `{path}` and `{content}` placeholders.
 
 ### Output Statistics
 

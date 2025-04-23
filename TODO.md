@@ -171,7 +171,7 @@
     - **Depends-on:** none
 
 ## Documentation Updates
-- [ ] **T015 · Chore · P2: update README examples for API changes**
+- [x] **T015 · Chore · P2: update README examples for API changes**
     - **Context:** Examples in README need updating for API changes
     - **Action:**
         1. Update all Go code examples in README.md
