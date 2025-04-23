@@ -205,7 +205,7 @@
         3. Tests pass
     - **Depends-on:** none
 
-- [ ] **T018 · Test · P2: replace string replacement with filepath.ToSlash for path normalization**
+- [x] **T018 · Test · P2: replace string replacement with filepath.ToSlash for path normalization**
     - **Context:** Tests use `strings.ReplaceAll` for path normalization
     - **Action:**
         1. Find test code using string replacement for path separators

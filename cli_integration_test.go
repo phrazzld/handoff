@@ -177,7 +177,7 @@ func TestCLIBasicFileProcessing(t *testing.T) {
 	expectedPath := singleFilePath
 	if runtime.GOOS == "windows" {
 		// Adjust path format for Windows if needed
-		expectedPath = strings.ReplaceAll(expectedPath, "\\", "/")
+		expectedPath = filepath.ToSlash(expectedPath)
 	}
 
 	if !strings.Contains(contentStr, "<"+expectedPath+">") {
@@ -221,7 +221,7 @@ func TestCLIDirectoryProcessing(t *testing.T) {
 		// Check path tags (adjust for Windows if needed)
 		fullPath := filepath.Join(tempDir, relPath)
 		if runtime.GOOS == "windows" {
-			fullPath = strings.ReplaceAll(fullPath, "\\", "/")
+			fullPath = filepath.ToSlash(fullPath)
 		}
 
 		if !strings.Contains(contentStr, "<"+fullPath+">") {
