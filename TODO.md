@@ -29,7 +29,7 @@
         2. CI pipeline successfully executes the coverage check using the built binary
     - **Depends-on:** [T001, T002]
 
-- [ ] **T004 · Chore · P3: evaluate removing binary from git history**
+- [x] **T004 · Chore · P3: evaluate removing binary from git history**
     - **Context:** Potential repository size optimization
     - **Action:**
         1. Assess repository size and impact of the committed binary on history
@@ -38,6 +38,22 @@
         1. A decision (yes/no) is made and documented on whether to rewrite history
         2. (If yes) A separate plan/ticket is created for the history rewrite
     - **Depends-on:** [T001, T002, T003]
+
+- [ ] **T025 · Chore · P3: implement git history rewrite to remove binary**
+    - **Context:** Repository size optimization as recommended in T004
+    - **Action:**
+        1. Notify all contributors about the planned history rewrite
+        2. Create a backup of the repository
+        3. Use `git-filter-repo` to remove the binary file from history
+        4. Force-push the rewritten history to remote
+        5. Have all contributors re-clone the repository or perform a careful update
+        6. Update any open PRs as needed
+    - **Done-when:**
+        1. Binary is completely removed from git history
+        2. All branches are rebased onto the new history
+        3. Repository size is reduced by approximately 3MB
+        4. All contributors are notified of the changes
+    - **Depends-on:** [T004]
 
 ## Configuration Refactor
 - [x] **T005 · Refactor · P1: implement functional options for configuration**
