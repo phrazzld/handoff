@@ -68,7 +68,7 @@
         3. All internal usages are updated; `go test ./...` passes
     - **Depends-on:** none
 
-- [ ] **T006 · Chore · P2: update configuration documentation for functional options**
+- [x] **T006 · Chore · P2: update configuration documentation for functional options**
     - **Context:** Current documentation refers to old configuration approach
     - **Action:**
         1. Update all documentation to reflect the new functional options pattern

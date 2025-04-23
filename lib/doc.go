@@ -22,11 +22,11 @@
 // The main API entry point is the ProcessProject function, which handles everything
 // from file discovery to filtering and formatting:
 //
-//	// Create default configuration and customize as needed
-//	config := handoff.NewConfig()
-//	config.Include = ".go,.md"          // Only include Go and Markdown files
-//	config.ExcludeNamesStr = "go.sum"   // Skip go.sum files
-//	config.ProcessConfig()              // Process string-based config into slice-based filters
+//	// Create configuration with functional options
+//	config := handoff.NewConfig(
+//	    handoff.WithInclude(".go,.md"),         // Only include Go and Markdown files
+//	    handoff.WithExcludeNames("go.sum"),     // Skip go.sum files
+//	)
 //
 //	// Process files and get formatted content
 //	content, stats, err := handoff.ProcessProject([]string{"./src", "README.md"}, config)

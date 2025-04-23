@@ -34,15 +34,12 @@ import (
 )
 
 func main() {
-	// Create configuration
-	config := lib.NewConfig()
-	config.Verbose = true
-	config.Exclude = ".exe,.bin,.jpg,.png"
-	config.ExcludeNamesStr = "node_modules,package-lock.json"
-	
-	// REQUIRED: Call ProcessConfig() to convert string-based settings into slices
-	// Skipping this step will cause your include/exclude filters not to work!
-	config.ProcessConfig()
+	// Create configuration using functional options
+	config := lib.NewConfig(
+		lib.WithVerbose(true),
+		lib.WithExclude(".exe,.bin,.jpg,.png"),
+		lib.WithExcludeNames("node_modules,package-lock.json"),
+	)
 
 	// Process project files
 	content, stats, err := lib.ProcessProject([]string{"./my-project"}, config)
@@ -88,9 +85,9 @@ The main function that processes one or more files or directories and returns th
   - Returns errors for inaccessible paths or problems reading files
   - Non-critical errors (like skipping a single file) are logged but don't stop processing
 - **Notes:**
-  - ProcessProject automatically calls ProcessConfig() on the provided configuration
-  - This means you can set string-based filters directly before calling ProcessProject
-  - However, for clarity and consistent practice, it's still recommended to call ProcessConfig() yourself after setting configuration options
+  - When using functional options pattern (recommended), no additional configuration processing is needed
+  - For backward compatibility, ProcessProject will call ProcessConfig() if needed
+  - The recommended approach is to use functional options for a cleaner, more maintainable codebase
 
 ### WriteToFile
 
@@ -141,25 +138,35 @@ Analyzes content and returns statistics.
 
 ## Configuration
 
-Use the `Config` struct to configure how files are processed:
+There are two ways to configure the library: the recommended functional options pattern and the traditional approach (maintained for backward compatibility).
+
+### Recommended: Functional Options Pattern
+
+The functional options pattern is the recommended way to configure the library. It's cleaner, less error-prone, and handles all processing internally:
 
 ```go
-type Config struct {
-    // String-based config options (for CLI flags)
-    Verbose        bool   // Enable verbose logging
-    Include        string // Comma-separated extensions to include (e.g., ".go,.txt")
-    Exclude        string // Comma-separated extensions to exclude (e.g., ".bin,.exe")
-    ExcludeNamesStr string // Comma-separated filenames to exclude (e.g., "package-lock.json")
-    Format         string // Template for formatting output
+// Create configuration with functional options
+config := lib.NewConfig(
+    lib.WithVerbose(true),                        // Enable verbose logging
+    lib.WithInclude(".go,.ts,.js"),               // Only include these extensions
+    lib.WithExclude(".exe,.dll,.jpg,.png,.gif"),  // Exclude these extensions
+    lib.WithExcludeNames("node_modules,dist"),    // Exclude these file/directory names
+    lib.WithFormat("File: {path}\n```\n{content}\n```\n\n"), // Custom format
+)
 
-    // Processed slice versions (used internally)
-    IncludeExts    []string // Processed Include string as slice
-    ExcludeExts    []string // Processed Exclude string as slice
-    ExcludeNames   []string // Processed ExcludeNamesStr as slice
-}
+// Use the configuration directly - no additional processing needed
+content, stats, err := lib.ProcessProject(paths, config)
 ```
 
-### Creating and Configuring
+This approach:
+- Eliminates the need to call `ProcessConfig()`
+- Processes string inputs automatically
+- Provides better type safety and discoverability
+- Works directly with ProcessProject with no intermediate steps
+
+### Legacy: Traditional Configuration
+
+For backward compatibility, you can still use the direct field approach, but it requires an additional step:
 
 ```go
 // Create a new config with default values
@@ -172,41 +179,37 @@ config.Exclude = ".exe,.dll,.jpg,.png,.gif"
 config.ExcludeNamesStr = "node_modules,dist,build"
 config.Format = "File: {path}\n```\n{content}\n```\n\n"
 
-// IMPORTANT: Process string-based configs into slices (required before use)
+// REQUIRED for the traditional approach: Process string-based configs into slices
 config.ProcessConfig()
 ```
 
-### IMPORTANT: Processing Configuration
-
-**You MUST call `ProcessConfig()` after setting any string-based configuration options.**
-
-The `ProcessConfig()` method converts the string-based configuration fields (`Include`, `Exclude`, `ExcludeNamesStr`) into their corresponding slice fields (`IncludeExts`, `ExcludeExts`, `ExcludeNames`) that are used during file processing.
-
-If you forget to call `ProcessConfig()`:
-- Your string-based include/exclude patterns will NOT be applied
-- No files will be filtered by extension or name as intended
-- The library will use whatever was previously in the slice fields (usually empty)
+**Note**: When using the traditional approach, you MUST call `ProcessConfig()` after setting string-based options. This is not required when using the functional options pattern.
 
 ### Key Configuration Options
 
 - **Format**: Template for formatting each file's output
+  - Functional option: `WithFormat("template string")`
   - Uses `{path}` and `{content}` placeholders
   - Default: `<{path}>\n```\n{content}\n```\n</{path}>\n\n`
 
-- **Include/IncludeExts**: File extensions to include
+- **Include**: File extensions to include
+  - Functional option: `WithInclude(".go,.txt")` 
   - If specified, only files with these extensions will be processed
   - Can be provided with or without dots: `.go,.txt` or `go,txt`
   - If not specified, all non-excluded files are processed
 
-- **Exclude/ExcludeExts**: File extensions to exclude
+- **Exclude**: File extensions to exclude
+  - Functional option: `WithExclude(".bin,.exe")`
   - Files with these extensions will be skipped
   - Default excludes common binary files and images
 
-- **ExcludeNamesStr/ExcludeNames**: File names to exclude
+- **ExcludeNames**: File names to exclude
+  - Functional option: `WithExcludeNames("package-lock.json,node_modules")`
   - Files with these exact names will be skipped
-  - Useful for excluding specific files like `package-lock.json` or directories like `node_modules`
+  - Useful for excluding specific files or directories
 
 - **Verbose**: Enable detailed logging
+  - Functional option: `WithVerbose(true)`
   - When true, shows verbose information about file processing
 
 ## Additional Examples
@@ -224,8 +227,6 @@ import (
 func main() {
 	// Example 1: Default configuration
 	defaultConfig := lib.NewConfig()
-	defaultConfig.ProcessConfig() // Required step to process any string-based settings
-	
 	content1, stats1, err := lib.ProcessProject([]string{"./src"}, defaultConfig)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
@@ -233,9 +234,9 @@ func main() {
 	fmt.Printf("Default config: processed %d files\n", stats1.FilesProcessed)
 	
 	// Example 2: Include only specific file types
-	codeConfig := lib.NewConfig()
-	codeConfig.Include = ".go,.ts,.js"
-	codeConfig.ProcessConfig() // Required to convert string filters to slices
+	codeConfig := lib.NewConfig(
+		lib.WithInclude(".go,.ts,.js"),  // Only process code files
+	)
 	
 	content2, stats2, err := lib.ProcessProject([]string{"./src"}, codeConfig)
 	if err != nil {
@@ -244,9 +245,9 @@ func main() {
 	fmt.Printf("Code files only: processed %d files\n", stats2.FilesProcessed)
 	
 	// Example 3: Custom format
-	markdownConfig := lib.NewConfig()
-	markdownConfig.Format = "## {path}\n\n```go\n{content}\n```\n\n"
-	markdownConfig.ProcessConfig() // Note: ProcessProject calls this internally, but it's good practice to call it explicitly
+	markdownConfig := lib.NewConfig(
+		lib.WithFormat("## {path}\n\n```go\n{content}\n```\n\n"),
+	)
 	
 	content3, stats3, err := lib.ProcessProject([]string{"./main.go"}, markdownConfig)
 	if err != nil {
@@ -255,9 +256,9 @@ func main() {
 	fmt.Printf("Custom format: processed %d lines\n", stats3.Lines)
 	
 	// Write results to separate files
-	lib.WriteToFile(content1, "all_files.md")
-	lib.WriteToFile(content2, "code_files.md") 
-	lib.WriteToFile(content3, "markdown_format.md")
+	lib.WriteToFile(content1, "all_files.md", true)
+	lib.WriteToFile(content2, "code_files.md", true) 
+	lib.WriteToFile(content3, "markdown_format.md", true)
 }
 ```
 
@@ -265,10 +266,10 @@ func main() {
 
 ```go
 func processMultiplePaths() {
-	config := lib.NewConfig()
-	// No string-based settings to process in this example, but it's
-	// still good practice to call ProcessConfig() before using the config
-	config.ProcessConfig()
+	// Create configuration with functional options (if needed)
+	config := lib.NewConfig(
+		lib.WithVerbose(true),  // Enable verbose logging
+	)
 	
 	// Process multiple specific files
 	paths := []string{
