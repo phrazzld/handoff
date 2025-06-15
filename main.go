@@ -41,7 +41,7 @@ func parseConfig() (*handoff.Config, string, bool, bool) {
 	flag.StringVar(&format, "format", format, "Custom format for output. Use {path} and {content} as placeholders")
 	flag.StringVar(&outputFile, "output", "", "Write output to the specified file instead of clipboard (e.g., HANDOFF.md)")
 	flag.BoolVar(&force, "force", false, "Allow overwriting existing files when using -output flag")
-	flag.BoolVar(&ignoreGitignore, "ignore-gitignore", false, "Process files even if they are gitignored")
+	flag.BoolVar(&ignoreGitignore, "ignore-gitignore", false, "Process files even if they are gitignored (bypasses .gitignore rules; default: false)")
 
 	// Parse command-line flags
 	flag.Parse()
