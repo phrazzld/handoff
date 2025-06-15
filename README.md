@@ -76,6 +76,7 @@ import "github.com/phrazzld/handoff/lib"
 - `-include`: Comma-separated list of file extensions to include (e.g., `.txt,.go`)
 - `-exclude`: Comma-separated list of file extensions to exclude (e.g., `.exe,.bin`)
 - `-exclude-names`: Comma-separated list of file names to exclude (e.g., `package-lock.json,yarn.lock`)
+- `-ignore-gitignore`: Process files even if they are gitignored (bypasses .gitignore rules; default: false)
 - `-format`: Custom format for output. Use `{path}` and `{content}` as placeholders
 
 #### Examples
@@ -101,6 +102,15 @@ import "github.com/phrazzld/handoff/lib"
 
 # Preview content that would be written to file
 ./handoff -output=HANDOFF.md -dry-run .
+
+# Process files including those that are gitignored
+./handoff -ignore-gitignore .
+
+# Process specific gitignored documentation files
+./handoff -ignore-gitignore docs/internal-notes.md README-private.md
+
+# Combine with verbose output to see which gitignored files are being processed
+./handoff -ignore-gitignore -verbose .
 ```
 
 ## Library Usage
@@ -122,6 +132,7 @@ func main() {
 		lib.WithInclude(".go,.md,.txt"),                     // Only include specific file types
 		lib.WithExclude(".exe,.bin,.jpg,.png"),              // Exclude binary and image files
 		lib.WithExcludeNames("node_modules,package-lock.json"), // Skip specific files/directories
+		lib.WithIgnoreGitignore(true),                       // Process files even if gitignored
 		lib.WithFormat("## {path}\n```\n{content}\n```\n\n"), // Custom output format
 	)
 	
@@ -209,11 +220,18 @@ When using the `-output` flag, Handoff includes built-in protection against acci
 
 ## Git Integration
 
-When processing directories, Handoff respects `.gitignore` rules:
-- In Git repositories, files ignored by Git will not be included
+Handoff provides flexible Git-aware file processing:
+
+### Default Behavior
+- In Git repositories, files ignored by Git (via `.gitignore`) will not be included
 - In non-Git directories, hidden files (starting with `.`) will be skipped
 - This ensures that binary files, build artifacts, and other irrelevant files are not copied
 
+### Bypassing Gitignore Rules
+Use the `-ignore-gitignore` flag when you need to process files that would normally be excluded:
+- Useful for documentation files, configuration templates, or context files that are intentionally gitignored
+- Common scenarios include processing `glance.md` files, internal notes, or draft documentation
+- When combined with `-verbose`, you'll see explicit confirmation of which gitignored files are being processed
 
 ## Development and Contributing
 
