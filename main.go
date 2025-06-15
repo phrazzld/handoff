@@ -25,10 +25,11 @@ func parseConfig() (*handoff.Config, string, bool, bool) {
 		include       string
 		exclude       string
 		excludeNames  string
-		format        string = "<{path}>\n```\n{content}\n```\n</{path}>\n\n"
+		format        = "<{path}>\n```\n{content}\n```\n</{path}>\n\n"
 		dryRun        bool
 		outputFile    string
 		force         bool
+		ignoreGitignore bool
 	)
 
 	// Define flag bindings
@@ -40,6 +41,7 @@ func parseConfig() (*handoff.Config, string, bool, bool) {
 	flag.StringVar(&format, "format", format, "Custom format for output. Use {path} and {content} as placeholders")
 	flag.StringVar(&outputFile, "output", "", "Write output to the specified file instead of clipboard (e.g., HANDOFF.md)")
 	flag.BoolVar(&force, "force", false, "Allow overwriting existing files when using -output flag")
+	flag.BoolVar(&ignoreGitignore, "ignore-gitignore", false, "Process files even if they are gitignored")
 
 	// Parse command-line flags
 	flag.Parse()
@@ -65,6 +67,10 @@ func parseConfig() (*handoff.Config, string, bool, bool) {
 	
 	if format != "" {
 		options = append(options, handoff.WithFormat(format))
+	}
+	
+	if ignoreGitignore {
+		options = append(options, handoff.WithIgnoreGitignore(ignoreGitignore))
 	}
 	
 	config := handoff.NewConfig(options...)

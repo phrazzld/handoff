@@ -50,6 +50,9 @@ type Config struct {
 	// Format is a template string for formatting output, using {path} and {content} placeholders
 	Format string
 
+	// IgnoreGitignore bypasses gitignore filtering when true
+	IgnoreGitignore bool
+
 	// Internal representation of include/exclude patterns
 	includeExts []string
 	excludeExts []string
@@ -128,6 +131,13 @@ func WithExcludeNames(excludeNames string) Option {
 func WithGitClient(gitClient GitClient) Option {
 	return func(c *Config) {
 		c.GitClient = gitClient
+	}
+}
+
+// WithIgnoreGitignore sets whether to ignore gitignore rules.
+func WithIgnoreGitignore(ignoreGitignore bool) Option {
+	return func(c *Config) {
+		c.IgnoreGitignore = ignoreGitignore
 	}
 }
 
@@ -430,8 +440,8 @@ func processFile(filePath string, logger *Logger, config *Config, processor Proc
 		return ""
 	}
 
-	// Check if file is gitignored
-	if isGitIgnored(filePath, config) {
+	// Check if file is gitignored (unless ignoring gitignore rules)
+	if !config.IgnoreGitignore && isGitIgnored(filePath, config) {
 		logger.Verbose("skipping gitignored file: %s", filePath)
 		return ""
 	}
