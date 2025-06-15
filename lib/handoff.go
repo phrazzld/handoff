@@ -440,10 +440,17 @@ func processFile(filePath string, logger *Logger, config *Config, processor Proc
 		return ""
 	}
 
-	// Check if file is gitignored (unless ignoring gitignore rules)
-	if !config.IgnoreGitignore && isGitIgnored(filePath, config) {
-		logger.Verbose("skipping gitignored file: %s", filePath)
-		return ""
+	// Respect gitignore rules unless explicitly bypassed.
+	// The IgnoreGitignore flag allows processing files that would normally be excluded
+	// by .gitignore rules - useful for documentation files, context gathering, or 
+	// when users need to process specific files regardless of Git's ignore patterns.
+	if isGitIgnored(filePath, config) {
+		if config.IgnoreGitignore {
+			logger.Verbose("processing gitignored file (bypass enabled): %s", filePath)
+		} else {
+			logger.Verbose("skipping gitignored file: %s", filePath)
+			return ""
+		}
 	}
 
 	// Check if file should be processed based on filters
