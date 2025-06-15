@@ -55,8 +55,8 @@ example.com/pkg/file2.go:20.30,25.3 3 1
 
 func TestCalculateCoverage(t *testing.T) {
 	testCases := []struct {
-		name            string
-		profiles        []*cover.Profile
+		name             string
+		profiles         []*cover.Profile
 		expectedCoverage float64
 	}{
 		{
@@ -106,8 +106,8 @@ func TestCalculateCoverage(t *testing.T) {
 			expectedCoverage: 0.0, // 0/6 = 0%
 		},
 		{
-			name:            "Empty profiles",
-			profiles:        []*cover.Profile{},
+			name:             "Empty profiles",
+			profiles:         []*cover.Profile{},
 			expectedCoverage: 0.0,
 		},
 	}

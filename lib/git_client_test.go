@@ -25,7 +25,7 @@ func TestMockGitClient(t *testing.T) {
 
 	t.Run("GitIgnore", func(t *testing.T) {
 		client := NewMockGitClient(true)
-		
+
 		// Configure mock to consider certain files ignored
 		client.SetIgnoredFiles(map[string]bool{
 			"/path/to/ignored.txt": true,
@@ -117,7 +117,7 @@ func TestGitClientIntegration(t *testing.T) {
 		// Create both client types
 		realClient := NewRealGitClient()
 		mockClient := NewMockGitClient(realClient.IsAvailable())
-		
+
 		// Set up mock client to simulate the real behavior
 		// Hidden files should be treated as ignored
 		mockClient.SetIgnoredFiles(map[string]bool{
@@ -129,9 +129,9 @@ func TestGitClientIntegration(t *testing.T) {
 			filePath := filepath.Join(tmpDir, file)
 			realResult := realClient.IsGitIgnored(filePath)
 			mockResult := mockClient.IsGitIgnored(filePath)
-			
+
 			t.Logf("Testing IsGitIgnored on %s: real=%v, mock=%v", file, realResult, mockResult)
-			
+
 			// Hidden files should be treated as ignored by both implementations
 			if strings.HasPrefix(file, ".") {
 				if !realResult {
@@ -148,14 +148,14 @@ func TestGitClientIntegration(t *testing.T) {
 	t.Run("Different client configurations", func(t *testing.T) {
 		// Test with standard config using real git
 		standardConfig := NewConfig()
-		
+
 		// Test with mock git that's unavailable
 		mockConfig := NewConfig(WithGitClient(NewMockGitClient(false)))
-		
+
 		// ProcessProject with both configs
 		standardContent, _, standardErr := ProcessProject([]string{tmpDir}, standardConfig)
 		mockContent, _, mockErr := ProcessProject([]string{tmpDir}, mockConfig)
-		
+
 		// Both should work, just potentially with different file discovery approaches
 		if standardErr != nil && !errors.Is(standardErr, ErrNoFilesProcessed) {
 			t.Errorf("ProcessProject with standard config failed: %v", standardErr)
@@ -163,7 +163,7 @@ func TestGitClientIntegration(t *testing.T) {
 		if mockErr != nil && !errors.Is(mockErr, ErrNoFilesProcessed) {
 			t.Errorf("ProcessProject with mock config failed: %v", mockErr)
 		}
-		
+
 		// Both should handle hidden files the same - they should be excluded
 		if strings.Contains(standardContent, ".hidden") || strings.Contains(mockContent, ".hidden") {
 			t.Error("Hidden files should be excluded in both real and mock implementations")

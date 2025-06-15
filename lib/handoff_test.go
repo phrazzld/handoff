@@ -406,8 +406,8 @@ func TestProcessConfig(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			config := &Config{
-				include:        tc.includeStr,
-				exclude:        tc.excludeStr,
+				include:         tc.includeStr,
+				exclude:         tc.excludeStr,
 				excludeNamesStr: tc.excludeNamesStr,
 			}
 
@@ -510,10 +510,10 @@ func TestProcessProject(t *testing.T) {
 		paths         []string
 		config        *Config
 		wantErr       bool
-		expectContent []string     // Strings that should be in the result
-		rejectContent []string     // Strings that should NOT be in the result
-		customFormat  bool         // Whether to test custom format
-		noProcess     bool         // Skip processing (e.g., for error cases)
+		expectContent []string // Strings that should be in the result
+		rejectContent []string // Strings that should NOT be in the result
+		customFormat  bool     // Whether to test custom format
+		noProcess     bool     // Skip processing (e.g., for error cases)
 	}{
 		{
 			name:          "Basic test with default config",
@@ -556,17 +556,17 @@ func TestProcessProject(t *testing.T) {
 			customFormat:  true,
 		},
 		{
-			name:    "Empty paths",
-			paths:   []string{},
-			config:  NewConfig(),
-			wantErr: true,
+			name:      "Empty paths",
+			paths:     []string{},
+			config:    NewConfig(),
+			wantErr:   true,
 			noProcess: true,
 		},
 		{
-			name:    "Invalid path",
-			paths:   []string{"/path/that/does/not/exist"},
-			config:  NewConfig(),
-			wantErr: false, // We shouldn't return an error for non-existent paths now
+			name:          "Invalid path",
+			paths:         []string{"/path/that/does/not/exist"},
+			config:        NewConfig(),
+			wantErr:       false, // We shouldn't return an error for non-existent paths now
 			expectContent: []string{},
 		},
 	}
@@ -658,14 +658,14 @@ func TestProcessProjectWithVerbose(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to read stderr output: %v", err)
 	}
-	
+
 	// Check for expected verbose output messages
 	verboseOutput := buf.String()
 	expectedMessages := []string{
 		"Processing path:",
 		"Processing file",
 	}
-	
+
 	for _, msg := range expectedMessages {
 		if !strings.Contains(verboseOutput, msg) {
 			t.Errorf("Verbose output missing expected message: %q", msg)
@@ -684,7 +684,7 @@ func TestProcessProjectWithVerbose(t *testing.T) {
 	if stats.Chars == 0 {
 		t.Error("ProcessProject() returned stats with zero characters")
 	}
-	
+
 	// ProcessProject no longer logs statistics directly as that's the caller's responsibility
 	// This test now verifies that the Stats struct is properly populated instead
 }
@@ -744,10 +744,10 @@ func TestProcessProject_NoFilesProcessed(t *testing.T) {
 
 	// Create mock git client that can properly track files
 	mockGit := NewMockGitClient(false) // Git is not available
-	
+
 	// Create config that will exclude the file using functional options
 	config := NewConfig(
-		WithExclude(".txt"), // Exclude the .txt file we created
+		WithExclude(".txt"),    // Exclude the .txt file we created
 		WithGitClient(mockGit), // Use our mock client
 	)
 
@@ -787,26 +787,26 @@ func TestWriteToFile(t *testing.T) {
 		// Create a nested path that doesn't exist yet
 		nestedDirPath := filepath.Join(tmpDir, "level1", "level2", "level3")
 		filePath := filepath.Join(nestedDirPath, "test.txt")
-		
+
 		// Content to write
 		content := "This is test content for directory creation"
-		
+
 		// Write to the file with non-existent directories
 		err = WriteToFile(content, filePath, false) // overwrite=false, but file doesn't exist yet
 		if err != nil {
 			t.Errorf("WriteToFile() failed with nested directories: %v", err)
 		}
-		
+
 		// Verify the file was created with the correct content
 		readContent, err := os.ReadFile(filePath)
 		if err != nil {
 			t.Errorf("Failed to read written file: %v", err)
 		}
-		
+
 		if string(readContent) != content {
 			t.Errorf("Written content doesn't match expected. Got %q, want %q", string(readContent), content)
 		}
-		
+
 		// Verify all parent directories were created
 		for _, dir := range []string{
 			filepath.Join(tmpDir, "level1"),
@@ -831,21 +831,21 @@ func TestWriteToFile(t *testing.T) {
 		// Try to overwrite with overwrite=false
 		newContent := "New content that should not be written"
 		err = WriteToFile(newContent, filePath, false)
-		
+
 		// Should get ErrFileExists error
 		if err == nil {
 			t.Errorf("WriteToFile() with overwrite=false didn't return error for existing file")
 		} else if !errors.Is(err, ErrFileExists) {
 			t.Errorf("WriteToFile() returned wrong error type. Got %v, want ErrFileExists", err)
 		}
-		
+
 		// Verify content wasn't changed
 		readContent, err := os.ReadFile(filePath)
 		if err != nil {
 			t.Errorf("Failed to read file: %v", err)
 		}
 		if string(readContent) != originalContent {
-			t.Errorf("File content was changed despite overwrite=false. Got %q, want %q", 
+			t.Errorf("File content was changed despite overwrite=false. Got %q, want %q",
 				string(readContent), originalContent)
 		}
 	})
@@ -865,14 +865,14 @@ func TestWriteToFile(t *testing.T) {
 		if err != nil {
 			t.Errorf("WriteToFile() with overwrite=true failed: %v", err)
 		}
-		
+
 		// Verify content was changed
 		readContent, err := os.ReadFile(filePath)
 		if err != nil {
 			t.Errorf("Failed to read file: %v", err)
 		}
 		if string(readContent) != newContent {
-			t.Errorf("File content wasn't changed despite overwrite=true. Got %q, want %q", 
+			t.Errorf("File content wasn't changed despite overwrite=true. Got %q, want %q",
 				string(readContent), newContent)
 		}
 	})

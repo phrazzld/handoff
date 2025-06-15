@@ -50,16 +50,19 @@ type Config struct {
 	// Format is a template string for formatting output, using {path} and {content} placeholders
 	Format string
 
+	// IgnoreGitignore bypasses gitignore filtering when true
+	IgnoreGitignore bool
+
 	// Internal representation of include/exclude patterns
-	includeExts []string
-	excludeExts []string
+	includeExts  []string
+	excludeExts  []string
 	excludeNames []string
 
 	// Original string forms (retained for backward compatibility)
-	include string
-	exclude string
+	include         string
+	exclude         string
 	excludeNamesStr string
-	
+
 	// GitClient is used for git-related operations
 	GitClient GitClient
 }
@@ -73,12 +76,12 @@ func NewConfig(opts ...Option) *Config {
 		Format:    "<{path}>\n```\n{content}\n```\n</{path}>\n\n",
 		GitClient: NewRealGitClient(),
 	}
-	
+
 	// Apply all options
 	for _, opt := range opts {
 		opt(c)
 	}
-	
+
 	return c
 }
 
@@ -131,12 +134,19 @@ func WithGitClient(gitClient GitClient) Option {
 	}
 }
 
+// WithIgnoreGitignore sets whether to ignore gitignore rules.
+func WithIgnoreGitignore(ignoreGitignore bool) Option {
+	return func(c *Config) {
+		c.IgnoreGitignore = ignoreGitignore
+	}
+}
+
 // Helper function to process comma-separated extensions
 func processExtensions(exts string) []string {
 	if exts == "" {
 		return nil
 	}
-	
+
 	result := []string{}
 	for _, ext := range strings.Split(exts, ",") {
 		ext = strings.TrimSpace(ext)
@@ -153,7 +163,7 @@ func processNames(names string) []string {
 	if names == "" {
 		return nil
 	}
-	
+
 	result := []string{}
 	for _, name := range strings.Split(names, ",") {
 		result = append(result, strings.TrimSpace(name))
@@ -216,13 +226,13 @@ type Stats struct {
 
 	// FilesTotal is the total number of candidate files found before filtering
 	FilesTotal int
-	
+
 	// Lines is the number of lines in the processed content
 	Lines int
-	
+
 	// Chars is the number of characters in the processed content
 	Chars int
-	
+
 	// Tokens is an estimated count of tokens in the processed content
 	Tokens int
 }
@@ -264,7 +274,7 @@ func getGitFiles(dir string, config *Config) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Check if files still exist before returning them
 	var existingFiles []string
 	for _, filePath := range files {
@@ -329,11 +339,11 @@ const (
 //     are non-printable, non-whitespace characters, the content is considered binary
 //
 // Note that this heuristic approach:
-//  - Only examines up to the first 512 bytes (configurable via binarySampleSize)
-//  - May produce false positives for some text files with unusual encoding
-//  - May produce false negatives for some binary files that appear text-like
-//  - Only considers ASCII control characters and DEL (127) as non-printable
-//  - Treats common whitespace characters (\n, \r, \t, space) as printable
+//   - Only examines up to the first 512 bytes (configurable via binarySampleSize)
+//   - May produce false positives for some text files with unusual encoding
+//   - May produce false negatives for some binary files that appear text-like
+//   - Only considers ASCII control characters and DEL (127) as non-printable
+//   - Treats common whitespace characters (\n, \r, \t, space) as printable
 func isBinaryFile(content []byte) bool {
 	// Check for null bytes, which are common in binary files
 	if len(content) > 0 && bytes.IndexByte(content, 0) != -1 {
@@ -430,10 +440,17 @@ func processFile(filePath string, logger *Logger, config *Config, processor Proc
 		return ""
 	}
 
-	// Check if file is gitignored
+	// Respect gitignore rules unless explicitly bypassed.
+	// The IgnoreGitignore flag allows processing files that would normally be excluded
+	// by .gitignore rules - useful for documentation files, context gathering, or
+	// when users need to process specific files regardless of Git's ignore patterns.
 	if isGitIgnored(filePath, config) {
-		logger.Verbose("skipping gitignored file: %s", filePath)
-		return ""
+		if config.IgnoreGitignore {
+			logger.Verbose("processing gitignored file (bypass enabled): %s", filePath)
+		} else {
+			logger.Verbose("skipping gitignored file: %s", filePath)
+			return ""
+		}
 	}
 
 	// Check if file should be processed based on filters
@@ -534,20 +551,20 @@ func processPathWithProcessor(path string, contentBuilder *strings.Builder, conf
 func processPaths(paths []string, config *Config, logger *Logger) (string, Stats, error) {
 	contentBuilder := &strings.Builder{}
 	processedFiles := 0
-	
+
 	// Discover all files upfront to avoid redundant directory scans
 	var allFiles []string
-	
+
 	// First, discover all files from all paths
 	for _, path := range paths {
 		logger.Verbose("Processing path: %s", path)
-		
+
 		info, err := os.Stat(path)
 		if err != nil {
 			logger.Warn("%v", err)
 			continue
 		}
-		
+
 		if info.IsDir() {
 			files, err := getFilesFromDir(path, config)
 			if err != nil {
@@ -560,25 +577,25 @@ func processPaths(paths []string, config *Config, logger *Logger) (string, Stats
 			allFiles = append(allFiles, path)
 		}
 	}
-	
+
 	// Store total file count for stats and progress tracking
 	totalFiles := len(allFiles)
 	logger.Verbose("Found %d total files across all paths", totalFiles)
-	
+
 	// Process all discovered files
 	for _, file := range allFiles {
 		// Create a processor function that tracks progress
 		processor := func(filepath string, fileContent []byte) string {
 			processedFiles++
 			logger.Verbose("Processing file (%d/%d): %s", processedFiles, totalFiles, filepath)
-			
+
 			// Format the output using the custom format
 			output := config.Format
 			output = strings.ReplaceAll(output, "{path}", filepath)
 			output = strings.ReplaceAll(output, "{content}", string(fileContent))
 			return output
 		}
-		
+
 		// Process the file directly without rediscovering it
 		output := processFile(file, logger, config, processor)
 		if output != "" {
@@ -587,10 +604,10 @@ func processPaths(paths []string, config *Config, logger *Logger) (string, Stats
 	}
 
 	content := contentBuilder.String()
-	
+
 	// Calculate statistics for the content
 	chars, lines, tokens := CalculateStatistics(content)
-	
+
 	// Create and populate Stats struct
 	stats := Stats{
 		FilesProcessed: processedFiles,
@@ -624,17 +641,17 @@ func WrapInContext(content string) string {
 
 // estimateTokenCount provides a simple approximation of token count in text.
 // This is an internal helper function that uses a basic whitespace-based approach:
-//  - Counts transitions from non-whitespace sequences to whitespace
-//  - Treats any continuous sequence of non-whitespace characters as one token
-//  - Adds a final count if text ends with non-whitespace characters
+//   - Counts transitions from non-whitespace sequences to whitespace
+//   - Treats any continuous sequence of non-whitespace characters as one token
+//   - Adds a final count if text ends with non-whitespace characters
 //
 // Note that this method:
-//  - Is significantly less sophisticated than actual LLM tokenizers
-//  - Doesn't account for subword tokenization used by most modern LLMs
-//  - May undercount tokens for punctuation that would be separate tokens in LLMs
-//  - May overcount for common words that LLMs represent as single tokens
-//  - Is intended for rough estimation purposes only, with accuracy varying
-//    by content type and language
+//   - Is significantly less sophisticated than actual LLM tokenizers
+//   - Doesn't account for subword tokenization used by most modern LLMs
+//   - May undercount tokens for punctuation that would be separate tokens in LLMs
+//   - May overcount for common words that LLMs represent as single tokens
+//   - Is intended for rough estimation purposes only, with accuracy varying
+//     by content type and language
 func estimateTokenCount(text string) int {
 	count := 0
 	inToken := false
@@ -697,7 +714,7 @@ func ProcessProject(paths []string, config *Config) (string, Stats, error) {
 	// For backward compatibility with existing code
 	// This call is unnecessary when using the functional options pattern
 	config.ProcessConfig()
-	
+
 	logger := NewLogger(config.Verbose)
 
 	if len(paths) == 0 {
@@ -751,7 +768,7 @@ func WriteToFile(content, filePath string, overwrite bool) error {
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
 		return fmt.Errorf("failed to create parent directories for %q: %w", filePath, err)
 	}
-	
+
 	// Write the file
 	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write to file %q: %w", filePath, err)

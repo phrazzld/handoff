@@ -86,3 +86,6 @@ PLAN.md
 *-task.md
 # Coverage check binaries
 tools/coverage-check/coverage-check*
+
+# glance files
+**/glance.md

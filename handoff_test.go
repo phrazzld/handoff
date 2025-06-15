@@ -133,7 +133,7 @@ func TestParseConfigOutputAndForceFlags(t *testing.T) {
 // The following tests have been removed as they are redundant with existing tests:
 // - TestFileCreation: Functionality covered by TestCLIBasicFileProcessing in cli_integration_test.go
 // - TestFileOverwriteProtection: Functionality covered by TestCLIForceFlag in cli_integration_test.go
-// - TestInvalidPathErrorHandling: Functionality covered by TestCLIErrorHandling in cli_integration_test.go 
+// - TestInvalidPathErrorHandling: Functionality covered by TestCLIErrorHandling in cli_integration_test.go
 //   and TestWriteToFileWithDirectoryCreation in lib/handoff_test.go
 
 // Note: determineOutputMode function was removed as it duplicated the output mode logic in main.go

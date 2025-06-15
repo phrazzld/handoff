@@ -92,7 +92,7 @@ func isToolCoverOutput(filepath string) bool {
 	}
 
 	content := string(data)
-	return len(content) > 0 && !strings.HasPrefix(content, "mode:") && 
+	return len(content) > 0 && !strings.HasPrefix(content, "mode:") &&
 		(strings.Contains(content, "(statements)") || strings.Contains(content, "total:"))
 }
 
