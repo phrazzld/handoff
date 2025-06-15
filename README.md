@@ -22,7 +22,7 @@ Handoff is both a command-line tool and a Go library for collecting and formatti
 - **Dual Interface**: Use as a command-line tool or import as a Go library
 - **Flexible File Collection**: Process individual files or entire directories
 - **Smart Filtering**: Include/exclude files by extension or name
-- **Git-Aware**: Respects .gitignore rules to skip irrelevant files
+- **Git-Aware**: Respects .gitignore rules to skip irrelevant files, with optional bypass for processing gitignored content
 - **Format Customization**: Customize output with templates
 - **Multiple Output Options**: Copy to clipboard or write to file
 - **Content Statistics**: Get detailed stats about processed content

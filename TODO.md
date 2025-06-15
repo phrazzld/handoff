@@ -16,8 +16,8 @@
 ## Documentation Updates (Nice to Have Before Merge)
 
 - [x] Add usage example to README.md showing `--ignore-gitignore` flag usage
-- [ ] Document the flag in CLAUDE.md build commands section
-- [ ] Add brief mention of the flag's purpose in the main project description
+- [x] Document the flag in CLAUDE.md build commands section
+- [x] Add brief mention of the flag's purpose in the main project description
 
 ## Post-Merge Enhancements (Future Work)
 

@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Build: `go build`
 - Install: `go install`
 - Run: `./handoff [options] [path1] [path2] ...`
+  - Key options: `-verbose`, `-output`, `-include`, `-exclude`, `-ignore-gitignore`
+  - Use `--help` for complete flag reference
 - Test all: `go test ./...`
 - Test specific: `go test -run TestName`
 - Test with verbosity: `go test -v ./...`
