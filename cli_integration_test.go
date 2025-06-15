@@ -129,20 +129,20 @@ func createTestFiles(t *testing.T) (string, map[string]string) {
 func TestCLIFlags(t *testing.T) {
 	binaryPath := buildBinary(t)
 	tempDir, _ := createTestFiles(t)
-	
+
 	// Create a test output file
 	outputFile := filepath.Join(tempDir, "test_flags_output.md")
-	
+
 	// Run with various flags to ensure they're accepted
-	_, stderr, err := runCliCommand(t, binaryPath, 
+	_, stderr, err := runCliCommand(t, binaryPath,
 		"-verbose",
-		"-output="+outputFile, 
+		"-output="+outputFile,
 		filepath.Join(tempDir, "file1.txt"))
-	
+
 	if err != nil {
 		t.Fatalf("CLI failed to run with flags: %v\nStderr: %s", err, stderr)
 	}
-	
+
 	// Check that output file was created
 	if _, err := os.Stat(outputFile); err != nil {
 		t.Errorf("Output file was not created: %v", err)
@@ -423,9 +423,9 @@ func TestCLIVerboseFlag(t *testing.T) {
 	outputFile := filepath.Join(tempDir, "verbose_output.md")
 
 	// Run with verbose flag
-	_, stderr, err := runCliCommand(t, binaryPath, 
+	_, stderr, err := runCliCommand(t, binaryPath,
 		"-verbose",
-		"-output="+outputFile, 
+		"-output="+outputFile,
 		tempDir)
 
 	if err != nil {
@@ -522,13 +522,13 @@ func TestCLIErrorHandling(t *testing.T) {
 
 	// Error message should be present in stderr
 	fileNotFoundPhrases := []string{
-		"no such file", "cannot find", "not found", "doesn't exist", 
-		"does not exist", "not exist", "invalid path", "failed to stat", 
+		"no such file", "cannot find", "not found", "doesn't exist",
+		"does not exist", "not exist", "invalid path", "failed to stat",
 	}
 	if !errorMessageContainsAny(stderr, fileNotFoundPhrases) {
 		t.Errorf("Error message should indicate file not found, got: %s", stderr)
 	}
-	
+
 	// The output should be empty since no files were processed
 	if len(stdout) > 0 && !strings.Contains(stdout, "No files processed") {
 		t.Errorf("Expected empty or 'No files processed' output, got: %s", stdout)

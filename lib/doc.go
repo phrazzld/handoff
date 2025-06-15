@@ -61,7 +61,7 @@
 //
 //	// Use stats to report information about the processed content
 //	fmt.Printf("Processed %d/%d files\n", stats.FilesProcessed, stats.FilesTotal)
-//	fmt.Printf("Total content: %d lines, %d chars, ~%d tokens\n", 
+//	fmt.Printf("Total content: %d lines, %d chars, ~%d tokens\n",
 //	    stats.Lines, stats.Chars, stats.Tokens)
 //
 // # Additional API Functions
