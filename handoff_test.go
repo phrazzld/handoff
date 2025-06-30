@@ -286,10 +286,16 @@ func TestResolveOutputPath(t *testing.T) {
 func TestCopyToClipboardErrorHandling(t *testing.T) {
 	// Save original PATH and restore after test
 	originalPath := os.Getenv("PATH")
-	defer os.Setenv("PATH", originalPath)
+	defer func() {
+		if err := os.Setenv("PATH", originalPath); err != nil {
+			t.Logf("Warning: failed to restore PATH: %v", err)
+		}
+	}()
 
 	// Set PATH to a non-existent directory to ensure clipboard commands can't be found
-	os.Setenv("PATH", "/this/path/does/not/exist")
+	if err := os.Setenv("PATH", "/this/path/does/not/exist"); err != nil {
+		t.Fatalf("Failed to set PATH: %v", err)
+	}
 
 	err := copyToClipboard("Test content")
 

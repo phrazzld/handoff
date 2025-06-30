@@ -89,3 +89,5 @@ tools/coverage-check/coverage-check*
 
 # glance files
 **/glance.md
+
+/docs/leyline

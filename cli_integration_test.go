@@ -51,7 +51,9 @@ func buildBinary(t *testing.T) string {
 
 	// Register cleanup to remove the binary after tests
 	t.Cleanup(func() {
-		os.Remove(absPath)
+		if err := os.Remove(absPath); err != nil {
+			t.Logf("Warning: failed to remove binary %s: %v", absPath, err)
+		}
 	})
 
 	return absPath
@@ -84,7 +86,9 @@ func createTestFiles(t *testing.T) (string, map[string]string) {
 
 	// Register cleanup to remove the directory after tests
 	t.Cleanup(func() {
-		os.RemoveAll(tempDir)
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir %s: %v", tempDir, err)
+		}
 	})
 
 	// Create various test files

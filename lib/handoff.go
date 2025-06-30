@@ -478,60 +478,6 @@ func processFile(filePath string, logger *Logger, config *Config, processor Proc
 	return processor(filePath, content)
 }
 
-// processDirectory processes all files in a directory with the given processor and config.
-// It discovers files in the directory (respecting Git's ignore rules if available),
-// filters them according to the provided configuration, and processes each valid file,
-// appending the formatted output to the contentBuilder.
-//
-// Parameters:
-//   - dirPath: The directory path to process
-//   - contentBuilder: Builder to append formatted content to
-//   - config: Configuration for file filtering and processing
-//   - logger: Logger for status and error messages
-//   - processor: Function to process each file's content
-func processDirectory(dirPath string, contentBuilder *strings.Builder, config *Config, logger *Logger, processor ProcessorFunc) {
-	files, err := getFilesFromDir(dirPath, config)
-	if err != nil {
-		logger.Error("processing directory %s: %v", dirPath, err)
-		return
-	}
-
-	for _, file := range files {
-		output := processFile(file, logger, config, processor)
-		if output != "" {
-			contentBuilder.WriteString(output)
-		}
-	}
-}
-
-// processPathWithProcessor processes a single path (file or directory) with a custom processor function.
-// This is a unified entry point that handles both files and directories, dispatching to the
-// appropriate handler based on the path type. For directories, it processes all contained files
-// recursively. For files, it processes the file directly.
-//
-// Parameters:
-//   - path: Path to a file or directory
-//   - contentBuilder: Builder to append formatted content to
-//   - config: Configuration for file filtering and processing
-//   - logger: Logger for status and error messages
-//   - processor: Function to process each file's content
-func processPathWithProcessor(path string, contentBuilder *strings.Builder, config *Config, logger *Logger, processor ProcessorFunc) {
-	info, err := os.Stat(path)
-	if err != nil {
-		// Just log the error and continue with other paths
-		logger.Warn("%v", err)
-		return
-	}
-
-	if info.IsDir() {
-		processDirectory(path, contentBuilder, config, logger, processor)
-	} else {
-		output := processFile(path, logger, config, processor)
-		if output != "" {
-			contentBuilder.WriteString(output)
-		}
-	}
-}
 
 // processPaths processes multiple file or directory paths according to the configuration.
 // It creates a customized processor function that tracks progress and formats output

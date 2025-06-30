@@ -696,7 +696,11 @@ func TestProcessPaths_ErrNoFilesProcessed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir %s: %v", tmpDir, err)
+		}
+	}()
 
 	// Create a file that we can exclude with config
 	filePath := filepath.Join(tmpDir, "test.txt")
@@ -734,7 +738,11 @@ func TestProcessProject_NoFilesProcessed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir %s: %v", tmpDir, err)
+		}
+	}()
 
 	// Create a file that we can exclude with configuration
 	filePath := filepath.Join(tmpDir, "test.txt")
