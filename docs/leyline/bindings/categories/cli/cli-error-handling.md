@@ -98,6 +98,6 @@ Always provide at least basic context and suggested actions.
 
 ## Related Bindings
 
-- [command-interface-design](./command-interface-design.md): Consistent patterns that reduce user errors
-- [cli-help-and-documentation](./cli-help-and-documentation.md): Help systems that errors can reference
+- [command-interface-design](../../docs/bindings/categories/cli/command-interface-design.md): Consistent patterns that reduce user errors
+- [cli-help-and-documentation](../../docs/bindings/categories/cli/cli-help-and-documentation.md): Help systems that errors can reference
 - [explicit-over-implicit](../../core/explicit-over-implicit.md): Making failures and their causes visible
