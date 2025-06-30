@@ -97,6 +97,6 @@ Document the reasoning when deviating from conventions.
 
 ## Related Bindings
 
-- [cli-help-and-documentation](./cli-help-and-documentation.md): Comprehensive help system design
-- [cli-error-handling](./cli-error-handling.md): User-friendly error messages
+- [cli-help-and-documentation](../../docs/bindings/categories/cli/cli-help-and-documentation.md): Comprehensive help system design
+- [cli-error-handling](../../docs/bindings/categories/cli/cli-error-handling.md): User-friendly error messages
 - [preferred-technology-patterns](../../core/preferred-technology-patterns.md): CLI framework selection

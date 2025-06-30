@@ -100,6 +100,6 @@ Ensure basic discoverability even with simplified help systems.
 
 ## Related Bindings
 
-- [command-interface-design](./command-interface-design.md): Command patterns that help systems should document
-- [cli-error-handling](./cli-error-handling.md): Error messages that guide toward help
+- [command-interface-design](../../docs/bindings/categories/cli/command-interface-design.md): Command patterns that help systems should document
+- [cli-error-handling](../../docs/bindings/categories/cli/cli-error-handling.md): Error messages that guide toward help
 - [unified-documentation](../../core/unified-documentation.md): Consistency between CLI help and external docs
